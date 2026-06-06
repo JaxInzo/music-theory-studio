@@ -175,9 +175,10 @@
         <div class="field">
           <label for="length">Video length</label>
           <select id="length">
-            <option value="very short, around 60 seconds, maximum 6 scenes">Short (~1 min, 6 scenes)</option>
-            <option value="medium length, around 3 minutes, around 12 scenes" selected>Medium (~3 min, 12 scenes)</option>
-            <option value="longer, around 5 minutes, around 20 scenes">Long (~5 min, 20 scenes)</option>
+            <option value="very short, around 60 seconds, exactly 12 scenes, no more no less">Short (~1 min, 12 scenes)</option>
+            <option value="medium length, around 3 minutes, exactly 24 scenes, no more no less" selected>Medium (~3 min, 24 scenes)</option>
+            <option value="longer, around 5 minutes, exactly 40 scenes, no more no less">Long (~5 min, 40 scenes)</option>
+            <option value="extended, around 8 minutes, exactly 60 scenes, no more no less">Extended (~8 min, 60 scenes)</option>
           </select>
         </div>
         <div class="field">
@@ -204,11 +205,11 @@
         <div class="field">
           <label for="artStyle">Art style</label>
           <select id="artStyle">
-            <option value="simple hand-drawn chalk sketch on a blackboard, white chalk on black">Chalk on blackboard</option>
-            <option value="clean minimalist whiteboard illustration, bold black marker on white background" selected>Whiteboard marker</option>
-            <option value="friendly hand-drawn sketch on aged parchment paper, ink style, warm tones">Ink on parchment</option>
-            <option value="flat clean digital illustration, simple shapes, muted pastel colors">Flat digital pastel</option>
-            <option value="simple pencil sketch on lined notebook paper, graphite style">Pencil on notebook</option>
+            <option value="hand-drawn sketch on deep navy blue background, golden yellow and coral red accents, white outlines, sketchy stroke texture, MusicIsEasy brand style" selected>Brand Navy (default)</option>
+            <option value="chalk illustration on dark navy blackboard, golden yellow chalk lines, coral red and sky blue accents, glowing chalk texture, MusicIsEasy brand palette">Navy Chalkboard</option>
+            <option value="clean minimalist illustration on white background, coral red and golden yellow line art, sky blue highlights, bold friendly strokes, MusicIsEasy brand colours">White &amp; Brand Colour</option>
+            <option value="flat digital illustration on deep navy background, golden yellow shapes, coral orange accents, soft sky blue highlights, simple bold forms, MusicIsEasy style">Navy Flat Digital</option>
+            <option value="hand-drawn notebook sketch on cream paper, coral red and golden yellow ink doodle style, sky blue accents, playful and loose strokes, MusicIsEasy feel">Cream Notebook Doodle</option>
           </select>
         </div>
         <div class="field">
@@ -222,10 +223,11 @@
         <div class="field">
           <label for="colorScheme">Colours</label>
           <select id="colorScheme">
-            <option value="black and white only, no colour" selected>Black &amp; white</option>
-            <option value="warm sepia tones, cream and brown">Warm sepia</option>
-            <option value="soft pastel colours, gentle and friendly">Soft pastels</option>
-            <option value="bold primary colours, high contrast">Bold &amp; bright</option>
+            <option value="deep navy blue background #1a2a4a, golden yellow #f5c842 and coral red #e8644a accents, sky blue #5b9fd4 highlights, white outlines" selected>Full brand palette</option>
+            <option value="deep navy blue background, golden yellow accents only, white highlights">Navy &amp; Gold</option>
+            <option value="deep navy blue background, coral red and orange accents only, white highlights">Navy &amp; Coral</option>
+            <option value="white background, coral red and golden yellow elements, sky blue accents">Light brand palette</option>
+            <option value="deep navy blue background, sky blue and white accents only, minimal colour">Navy &amp; Blue</option>
           </select>
         </div>
       </div>
@@ -421,12 +423,14 @@ async function generate(){
   var imgComplexity=document.getElementById('imgComplexity').value;
   var colorScheme=document.getElementById('colorScheme').value;
   var styleNotes=document.getElementById('styleNotes').value.trim();
-  var channelName=localStorage.getItem('mts_channelName')||'';
+  var channelName=localStorage.getItem('mts_channelName')||'MusicIsEasy';
+  var channelTagline=localStorage.getItem('mts_channelTagline')||'';
+  var taglineClause=channelTagline?' The channel tagline is: "'+channelTagline+'".':'';
 
   var allAvoid=[avoid,globalAvoid].filter(Boolean).join(', ');
   var avoidClause=allAvoid?' Never use these words or phrases: '+allAvoid+'.':'';
   var styleClause=styleNotes?' Additional image notes: '+styleNotes+'.':'';
-  var channelClause=channelName?' This is for a YouTube channel called "'+channelName+'".':'';
+  var channelClause=' This is for a YouTube channel called "'+channelName+'".'+taglineClause;
 
   var btn=document.getElementById('generateBtn');
   btn.disabled=true;
@@ -435,7 +439,7 @@ async function generate(){
   hideStatus();
   setProgress(10,'Step 1 of 2 — Writing your script...');
 
-  var scriptPrompt='You are writing a YouTube video script about music theory.'+channelClause+' Audience: '+audience+'. Topic: '+topic+'. Tone: '+tone+'. Length: '+length+'. Language: '+complexity+'.'+avoidClause+' Write ONLY the spoken narration split into numbered scenes. Each scene is 1-3 sentences maximum. Format strictly as:\nSCENE 1: [text]\nSCENE 2: [text]\nNo intro, no meta text, no headings. Just the scenes.';
+  var scriptPrompt='You are writing a YouTube video script about music theory.'+channelClause+' Audience: '+audience+'. Topic: '+topic+'. Tone: '+tone+'. Length: '+length+'. Language: '+complexity+'.'+avoidClause+' Write ONLY the spoken narration split into numbered scenes. Each scene is 1-3 sentences maximum.\n\nIMPORTANT STRUCTURE RULES:\n- SCENE 1 must always be a warm welcome intro that greets viewers, introduces the channel "'+channelName+'" and briefly states what this video will cover.\n- The FINAL SCENE must always be an outro that thanks viewers for watching, asks them to like and subscribe to "'+channelName+'", and gives a friendly teaser of what is coming next.\n- All scenes in between cover the actual topic content.\n\nFormat strictly as:\nSCENE 1: [intro text]\nSCENE 2: [text]\n...and so on...\nSCENE N: [outro text]\n\nNo meta text, no headings outside the scene format. Just the scenes.';
 
   try{
     var r1=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{
@@ -498,8 +502,16 @@ function renderOutput(data){
 
   for(var i=0;i<data.scenes.length;i++){
     var p=data.prompts[i]||'';
-    html+='<div class="scene-card">'
-      +'<div class="scene-header"><span class="scene-num">Scene '+(i+1)+'</span>'
+    var isIntro=i===0;
+    var isOutro=i===data.scenes.length-1;
+    var borderColor=isIntro?'border-color:#f5c842;':isOutro?'border-color:#e8644a;':'';
+    var badge=isIntro
+      ?'<span style="font-size:10px;background:#f5c842;color:#1a1408;padding:2px 8px;border-radius:99px;margin-left:8px;font-weight:600;letter-spacing:0.05em;">INTRO</span>'
+      :isOutro
+      ?'<span style="font-size:10px;background:#e8644a;color:#fff;padding:2px 8px;border-radius:99px;margin-left:8px;font-weight:600;letter-spacing:0.05em;">OUTRO</span>'
+      :'';
+    html+='<div class="scene-card" style="'+borderColor+'">'
+      +'<div class="scene-header"><span class="scene-num">Scene '+(i+1)+badge+'</span>'
       +'<button class="btn" style="padding:5px 12px;font-size:12px;" onclick="copyText(\''+escJs(p)+'\',this)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy prompt</button></div>'
       +'<div class="scene-text">'+escHtml(data.scenes[i])+'</div>'
       +'<div class="scene-prompt-label">Image prompt</div>'
