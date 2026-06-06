@@ -7,464 +7,87 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f0e0c;
-    --bg2: #1a1814;
-    --bg3: #242018;
-    --border: rgba(255,255,255,0.08);
-    --border2: rgba(255,255,255,0.14);
-    --gold: #c9a84c;
-    --gold2: #e8c96a;
-    --gold-dim: rgba(201,168,76,0.15);
-    --text: #f0ece4;
-    --text2: #a09880;
-    --text3: #6a6050;
-    --green: #4caf82;
-    --green-bg: rgba(76,175,130,0.1);
-    --red: #e05555;
-    --red-bg: rgba(224,85,85,0.1);
-    --blue: #5b9bd5;
-    --blue-bg: rgba(91,155,213,0.1);
-    --radius: 10px;
-    --radius-lg: 16px;
+    --bg:#0f0e0c;--bg2:#1a1814;--bg3:#242018;
+    --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+    --gold:#c9a84c;--gold2:#e8c96a;--gold-dim:rgba(201,168,76,0.15);
+    --text:#f0ece4;--text2:#a09880;--text3:#6a6050;
+    --green:#4caf82;--green-bg:rgba(76,175,130,0.1);
+    --red:#e05555;--red-bg:rgba(224,85,85,0.1);
+    --blue:#5b9bd5;--blue-bg:rgba(91,155,213,0.1);
+    --radius:10px;--radius-lg:16px;
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    font-size: 14px;
-    line-height: 1.6;
-  }
-
-  /* Header */
-  .header {
-    border-bottom: 0.5px solid var(--border);
-    padding: 20px 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--bg2);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .logo-icon {
-    width: 36px;
-    height: 36px;
-    background: var(--gold-dim);
-    border: 0.5px solid var(--gold);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-  }
-
-  .logo-text {
-    font-family: 'Playfair Display', serif;
-    font-size: 18px;
-    color: var(--gold2);
-    letter-spacing: 0.01em;
-  }
-
-  .logo-sub {
-    font-size: 11px;
-    color: var(--text3);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-
-  /* Navigation tabs */
-  .tabs {
-    display: flex;
-    gap: 2px;
-    padding: 16px 32px 0;
-    border-bottom: 0.5px solid var(--border);
-    background: var(--bg2);
-  }
-
-  .tab {
-    padding: 10px 20px;
-    font-size: 13px;
-    color: var(--text3);
-    cursor: pointer;
-    border-radius: var(--radius) var(--radius) 0 0;
-    border: 0.5px solid transparent;
-    background: none;
-    font-family: 'DM Sans', sans-serif;
-    transition: all 0.2s;
-    letter-spacing: 0.02em;
-  }
-
-  .tab:hover { color: var(--text2); background: var(--bg3); }
-
-  .tab.active {
-    color: var(--gold2);
-    background: var(--bg);
-    border-color: var(--border);
-    border-bottom-color: var(--bg);
-    margin-bottom: -0.5px;
-  }
-
-  /* Main layout */
-  .main {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 32px 32px 80px;
-  }
-
-  .page { display: none; }
-  .page.active { display: block; }
-
-  /* Cards */
-  .card {
-    background: var(--bg2);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 24px;
-    margin-bottom: 16px;
-  }
-
-  .card-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 15px;
-    color: var(--gold);
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .card-title svg { opacity: 0.7; }
-
-  /* Form elements */
-  .field { margin-bottom: 14px; }
-  .field:last-child { margin-bottom: 0; }
-
-  label {
-    display: block;
-    font-size: 12px;
-    color: var(--text3);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-    font-weight: 500;
-  }
-
-  input[type=text],
-  input[type=password],
-  textarea,
-  select {
-    width: 100%;
-    background: var(--bg3);
-    border: 0.5px solid var(--border2);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    padding: 10px 14px;
-    outline: none;
-    transition: border-color 0.2s;
-    appearance: none;
-  }
-
-  input[type=text]:focus,
-  input[type=password]:focus,
-  textarea:focus,
-  select:focus {
-    border-color: var(--gold);
-  }
-
-  input::placeholder, textarea::placeholder { color: var(--text3); }
-
-  textarea { resize: vertical; min-height: 80px; }
-
-  select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236a6050' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    padding-right: 32px;
-    cursor: pointer;
-  }
-
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-
-  /* Password field */
-  .pw-wrap { position: relative; }
-  .pw-wrap input { padding-right: 44px; }
-  .pw-toggle {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text3);
-    padding: 0;
-    display: flex;
-    align-items: center;
-  }
-  .pw-toggle:hover { color: var(--text2); }
-
-  /* Buttons */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 9px 18px;
-    border-radius: var(--radius);
-    border: 0.5px solid var(--border2);
-    background: var(--bg3);
-    color: var(--text2);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.18s;
-    font-weight: 400;
-    text-decoration: none;
-  }
-
-  .btn:hover { border-color: var(--border2); background: var(--bg2); color: var(--text); }
-  .btn:active { transform: scale(0.98); }
-
-  .btn-gold {
-    background: var(--gold);
-    border-color: var(--gold);
-    color: #1a1408;
-    font-weight: 500;
-  }
-  .btn-gold:hover { background: var(--gold2); border-color: var(--gold2); color: #1a1408; }
-
-  .btn-lg {
-    width: 100%;
-    justify-content: center;
-    padding: 14px 24px;
-    font-size: 15px;
-    font-weight: 500;
-    border-radius: var(--radius-lg);
-    margin-top: 8px;
-  }
-
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-
-  /* Status messages */
-  .status {
-    padding: 12px 16px;
-    border-radius: var(--radius);
-    font-size: 13px;
-    margin-bottom: 16px;
-    display: none;
-  }
-  .status.show { display: block; }
-  .status.info { background: var(--blue-bg); color: var(--blue); border: 0.5px solid rgba(91,155,213,0.2); }
-  .status.success { background: var(--green-bg); color: var(--green); border: 0.5px solid rgba(76,175,130,0.2); }
-  .status.error { background: var(--red-bg); color: var(--red); border: 0.5px solid rgba(224,85,85,0.2); }
-
-  /* Progress bar */
-  .progress-wrap { margin-bottom: 16px; display: none; }
-  .progress-wrap.show { display: block; }
-  .progress-label { font-size: 12px; color: var(--text3); margin-bottom: 6px; }
-  .progress-bar-bg { background: var(--bg3); border-radius: 99px; height: 4px; overflow: hidden; }
-  .progress-bar-fill { height: 4px; background: var(--gold); border-radius: 99px; transition: width 0.4s ease; width: 0%; }
-
-  /* Scene cards */
-  .scene-card {
-    background: var(--bg3);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px 18px;
-    margin-bottom: 10px;
-    transition: border-color 0.2s;
-  }
-  .scene-card:hover { border-color: var(--border2); }
-
-  .scene-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-  }
-
-  .scene-num {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--gold);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .scene-copy {
-    display: flex;
-    gap: 6px;
-  }
-
-  .scene-text {
-    font-size: 14px;
-    color: var(--text);
-    line-height: 1.6;
-    margin-bottom: 10px;
-  }
-
-  .scene-prompt-label {
-    font-size: 11px;
-    color: var(--text3);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    margin-bottom: 4px;
-  }
-
-  .scene-prompt {
-    font-size: 13px;
-    color: var(--text2);
-    line-height: 1.5;
-    font-style: italic;
-    background: var(--bg2);
-    border-radius: 6px;
-    padding: 8px 12px;
-    border: 0.5px solid var(--border);
-  }
-
-  /* History */
-  .history-item {
-    background: var(--bg2);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 18px 22px;
-    margin-bottom: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .history-item:hover { border-color: var(--gold); }
-
-  .history-meta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 6px;
-  }
-
-  .history-topic {
-    font-family: 'Playfair Display', serif;
-    font-size: 16px;
-    color: var(--text);
-  }
-
-  .history-date {
-    font-size: 11px;
-    color: var(--text3);
-  }
-
-  .history-tags {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-
-  .tag {
-    display: inline-block;
-    font-size: 11px;
-    padding: 2px 10px;
-    border-radius: 99px;
-    background: var(--bg3);
-    color: var(--text3);
-    border: 0.5px solid var(--border);
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text3);
-  }
-
-  .empty-state svg { margin-bottom: 12px; opacity: 0.3; }
-  .empty-state p { font-size: 14px; }
-
-  /* Settings page */
-  .preset-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-
-  .preset-card {
-    background: var(--bg3);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    cursor: pointer;
-    transition: all 0.18s;
-  }
-  .preset-card:hover, .preset-card.active { border-color: var(--gold); background: var(--gold-dim); }
-  .preset-name { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
-  .preset-desc { font-size: 12px; color: var(--text3); }
-
-  /* Results header */
-  .results-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 0.5px solid var(--border);
-  }
-  .results-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 22px;
-    color: var(--text);
-  }
-  .results-sub { font-size: 13px; color: var(--text3); margin-top: 2px; }
-
-  /* Spinner */
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .spinner { animation: spin 0.8s linear infinite; display: inline-block; }
-
-  /* Save indicator */
-  .save-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--green);
-    display: inline-block;
-    margin-right: 5px;
-  }
-
-  /* Divider */
-  .divider {
-    border: none;
-    border-top: 0.5px solid var(--border);
-    margin: 20px 0;
-  }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
-
-  @media (max-width: 600px) {
-    .grid2, .grid3 { grid-template-columns: 1fr; }
-    .main { padding: 20px 16px 60px; }
-    .header { padding: 16px; }
-    .tabs { padding: 12px 16px 0; overflow-x: auto; }
-  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;}
+  .header{border-bottom:0.5px solid var(--border);padding:20px 32px;display:flex;align-items:center;justify-content:space-between;background:var(--bg2);position:sticky;top:0;z-index:100;}
+  .logo{display:flex;align-items:center;gap:12px;}
+  .logo-icon{width:36px;height:36px;background:var(--gold-dim);border:0.5px solid var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .logo-text{font-family:'Playfair Display',serif;font-size:18px;color:var(--gold2);letter-spacing:0.01em;}
+  .logo-sub{font-size:11px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;}
+  .tabs{display:flex;gap:2px;padding:16px 32px 0;border-bottom:0.5px solid var(--border);background:var(--bg2);}
+  .tab{padding:10px 20px;font-size:13px;color:var(--text3);cursor:pointer;border-radius:var(--radius) var(--radius) 0 0;border:0.5px solid transparent;background:none;font-family:'DM Sans',sans-serif;transition:all 0.2s;letter-spacing:0.02em;}
+  .tab:hover{color:var(--text2);background:var(--bg3);}
+  .tab.active{color:var(--gold2);background:var(--bg);border-color:var(--border);border-bottom-color:var(--bg);margin-bottom:-0.5px;}
+  .main{max-width:960px;margin:0 auto;padding:32px 32px 80px;}
+  .page{display:none;}.page.active{display:block;}
+  .card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:16px;}
+  .card-title{font-family:'Playfair Display',serif;font-size:15px;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+  .field{margin-bottom:14px;}.field:last-child{margin-bottom:0;}
+  label{display:block;font-size:12px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;font-weight:500;}
+  input[type=text],input[type=password],textarea,select{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;outline:none;transition:border-color 0.2s;appearance:none;}
+  input[type=text]:focus,input[type=password]:focus,textarea:focus,select:focus{border-color:var(--gold);}
+  input::placeholder,textarea::placeholder{color:var(--text3);}
+  textarea{resize:vertical;min-height:80px;}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236a6050' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  .pw-wrap{position:relative;}.pw-wrap input{padding-right:44px;}
+  .pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);padding:0;display:flex;align-items:center;}
+  .pw-toggle:hover{color:var(--text2);}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all 0.18s;font-weight:400;text-decoration:none;}
+  .btn:hover{background:var(--bg2);color:var(--text);}
+  .btn:active{transform:scale(0.98);}
+  .btn-gold{background:var(--gold);border-color:var(--gold);color:#1a1408;font-weight:500;}
+  .btn-gold:hover{background:var(--gold2);border-color:var(--gold2);color:#1a1408;}
+  .btn-lg{width:100%;justify-content:center;padding:14px 24px;font-size:15px;font-weight:500;border-radius:var(--radius-lg);margin-top:8px;}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+  .status{padding:12px 16px;border-radius:var(--radius);font-size:13px;margin-bottom:16px;display:none;}
+  .status.show{display:block;}
+  .status.info{background:var(--blue-bg);color:var(--blue);border:0.5px solid rgba(91,155,213,0.2);}
+  .status.success{background:var(--green-bg);color:var(--green);border:0.5px solid rgba(76,175,130,0.2);}
+  .status.error{background:var(--red-bg);color:var(--red);border:0.5px solid rgba(224,85,85,0.2);}
+  .progress-wrap{margin-bottom:16px;display:none;}.progress-wrap.show{display:block;}
+  .progress-label{font-size:12px;color:var(--text3);margin-bottom:6px;}
+  .progress-bar-bg{background:var(--bg3);border-radius:99px;height:4px;overflow:hidden;}
+  .progress-bar-fill{height:4px;background:var(--gold);border-radius:99px;transition:width 0.4s ease;width:0%;}
+  .scene-card{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;transition:border-color 0.2s;}
+  .scene-card:hover{border-color:var(--border2);}
+  .scene-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .scene-num{font-size:11px;font-weight:500;color:var(--gold);letter-spacing:0.08em;text-transform:uppercase;}
+  .scene-text{font-size:14px;color:var(--text);line-height:1.6;margin-bottom:10px;}
+  .scene-prompt-label{font-size:11px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px;}
+  .scene-prompt{font-size:13px;color:var(--text2);line-height:1.5;font-style:italic;background:var(--bg2);border-radius:6px;padding:8px 12px;border:0.5px solid var(--border);}
+  .history-item{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:12px;cursor:pointer;transition:all 0.2s;}
+  .history-item:hover{border-color:var(--gold);}
+  .history-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .history-topic{font-family:'Playfair Display',serif;font-size:16px;color:var(--text);}
+  .history-date{font-size:11px;color:var(--text3);}
+  .history-tags{display:flex;gap:6px;flex-wrap:wrap;}
+  .tag{display:inline-block;font-size:11px;padding:2px 10px;border-radius:99px;background:var(--bg3);color:var(--text3);border:0.5px solid var(--border);}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--text3);}
+  .preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  .preset-card{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:all 0.18s;}
+  .preset-card:hover,.preset-card.active{border-color:var(--gold);background:var(--gold-dim);}
+  .preset-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px;}
+  .preset-desc{font-size:12px;color:var(--text3);}
+  .results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:0.5px solid var(--border);}
+  .results-title{font-family:'Playfair Display',serif;font-size:22px;color:var(--text);}
+  .results-sub{font-size:13px;color:var(--text3);margin-top:2px;}
+  .save-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .spinner{animation:spin 0.8s linear infinite;display:inline-block;}
+  ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:var(--bg);}
+  ::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px;}
+  @media(max-width:600px){.grid2,.grid3{grid-template-columns:1fr;}.main{padding:20px 16px 60px;}.header{padding:16px;}.tabs{padding:12px 16px 0;overflow-x:auto;}}
 </style>
 </head>
 <body>
@@ -478,16 +101,14 @@
     </div>
   </div>
   <div class="header-actions">
-    <span id="saveIndicator" style="font-size:12px;color:var(--text3);display:none;">
-      <span class="save-dot"></span>Settings saved
-    </span>
+    <span id="saveIndicator" style="font-size:12px;color:var(--text3);display:none;"><span class="save-dot"></span>Settings saved</span>
   </div>
 </div>
 
 <div class="tabs">
-  <button class="tab active" onclick="showPage('generate', this)">Generate</button>
-  <button class="tab" onclick="showPage('history', this)">History</button>
-  <button class="tab" onclick="showPage('settings', this)">Settings</button>
+  <button class="tab active" onclick="showPage('generate',this)">Generate</button>
+  <button class="tab" onclick="showPage('history',this)">History</button>
+  <button class="tab" onclick="showPage('settings',this)">Settings</button>
 </div>
 
 <div class="main">
@@ -508,7 +129,7 @@
             <svg id="eyeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
-        <p style="font-size:12px;color:var(--text3);margin-top:6px;">Get a free key at <a href="https://aistudio.google.com" target="_blank" style="color:var(--gold);text-decoration:none;">aistudio.google.com</a></p>
+        <p style="font-size:12px;color:var(--text3);margin-top:6px;">Get a free key at <a href="https://aistudio.google.com" target="_blank" style="color:var(--gold);text-decoration:none;">aistudio.google.com</a> &mdash; paste image prompts into <a href="https://gemini.google.com" target="_blank" style="color:var(--gold);text-decoration:none;">gemini.google.com</a> to generate images free</p>
       </div>
     </div>
 
@@ -525,7 +146,7 @@
 
     <div class="card">
       <div class="card-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         Script Settings
       </div>
       <div class="grid2">
@@ -646,32 +267,30 @@
       <h2 style="font-family:'Playfair Display',serif;font-size:22px;color:var(--text);">Settings &amp; presets</h2>
       <p style="font-size:13px;color:var(--text3);margin-top:4px;">Save your preferred defaults so you never need to set them again</p>
     </div>
-
     <div class="card">
       <div class="card-title">Quick presets</div>
       <div class="preset-grid">
-        <div class="preset-card" onclick="applyPreset('beginner')">
+        <div class="preset-card" onclick="applyPreset('beginner',this)">
           <div class="preset-name">Beginner friendly</div>
           <div class="preset-desc">Friendly tone, extremely simple, complete beginners, minimal B&amp;W images</div>
         </div>
-        <div class="preset-card" onclick="applyPreset('kids')">
+        <div class="preset-card" onclick="applyPreset('kids',this)">
           <div class="preset-name">Kids channel</div>
           <div class="preset-desc">Playful &amp; humorous, children 8–12, bold bright colours, moderate detail</div>
         </div>
-        <div class="preset-card" onclick="applyPreset('professional')">
+        <div class="preset-card" onclick="applyPreset('professional',this)">
           <div class="preset-name">Professional</div>
           <div class="preset-desc">Clear &amp; professional, intermediate students, whiteboard style, moderate</div>
         </div>
-        <div class="preset-card" onclick="applyPreset('storytelling')">
+        <div class="preset-card" onclick="applyPreset('storytelling',this)">
           <div class="preset-name">Storytelling</div>
           <div class="preset-desc">Storytelling tone, adults, parchment ink style, warm sepia tones</div>
         </div>
       </div>
     </div>
-
     <div class="card">
       <div class="card-title">Save current settings as default</div>
-      <p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Your current Generate page settings will be loaded automatically every time you open the app.</p>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Your current Generate page settings will load automatically every time you open the app.</p>
       <div style="display:flex;gap:10px;">
         <button class="btn btn-gold" onclick="saveDefaults()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -680,28 +299,26 @@
         <button class="btn" onclick="resetDefaults()">Reset to factory</button>
       </div>
     </div>
-
     <div class="card">
       <div class="card-title">Channel branding</div>
       <div class="grid2">
         <div class="field">
           <label for="channelName">Channel name</label>
-          <input type="text" id="channelName" placeholder="e.g. Simply Music Theory" oninput="saveSetting('channelName', this.value)">
+          <input type="text" id="channelName" placeholder="e.g. Simply Music Theory" oninput="saveSetting('channelName',this.value)">
         </div>
         <div class="field">
           <label for="channelTagline">Tagline / style note</label>
-          <input type="text" id="channelTagline" placeholder="e.g. Keep it simple, keep it fun" oninput="saveSetting('channelTagline', this.value)">
+          <input type="text" id="channelTagline" placeholder="e.g. Keep it simple, keep it fun" oninput="saveSetting('channelTagline',this.value)">
         </div>
       </div>
       <div class="field">
         <label for="globalAvoid">Global words to always avoid</label>
-        <input type="text" id="globalAvoid" placeholder="e.g. semitone, chromatic — applied to every video" oninput="saveSetting('globalAvoid', this.value)">
+        <input type="text" id="globalAvoid" placeholder="e.g. semitone, chromatic — applied to every video" oninput="saveSetting('globalAvoid',this.value)">
       </div>
     </div>
-
     <div class="card">
       <div class="card-title">Data &amp; storage</div>
-      <p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Everything is stored in your browser's local storage. Nothing is sent anywhere except directly to Google's API when you generate.</p>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Everything is stored in your browser. Nothing is sent anywhere except directly to Google's API when you generate.</p>
       <button class="btn" onclick="exportAllData()" style="margin-right:8px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export all data
@@ -713,349 +330,265 @@
 </div>
 
 <script>
-var currentResults = null;
+var currentResults=null;
 
-function showPage(name, btn) {
-  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
-  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
-  document.getElementById('page-' + name).classList.add('active');
+function showPage(name,btn){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('page-'+name).classList.add('active');
   btn.classList.add('active');
-  if (name === 'history') renderHistory();
+  if(name==='history')renderHistory();
 }
 
-function toggleKey() {
-  var k = document.getElementById('apiKey');
-  var icon = document.getElementById('eyeIcon');
-  if (k.type === 'password') {
-    k.type = 'text';
-    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+function toggleKey(){
+  var k=document.getElementById('apiKey');
+  var icon=document.getElementById('eyeIcon');
+  if(k.type==='password'){
+    k.type='text';
+    icon.innerHTML='<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
   } else {
-    k.type = 'password';
-    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    k.type='password';
+    icon.innerHTML='<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
   }
 }
 
-function saveKey() {
-  localStorage.setItem('mts_apikey', document.getElementById('apiKey').value);
-}
+function saveKey(){localStorage.setItem('mts_apikey',document.getElementById('apiKey').value);}
 
-function saveSetting(key, val) {
-  localStorage.setItem('mts_' + key, val);
-  showSaveIndicator();
-}
+function saveSetting(key,val){localStorage.setItem('mts_'+key,val);showSaveIndicator();}
 
-function showSaveIndicator() {
-  var el = document.getElementById('saveIndicator');
-  el.style.display = 'inline-flex';
+function showSaveIndicator(){
+  var el=document.getElementById('saveIndicator');
+  el.style.display='inline-flex';
   clearTimeout(window._saveTimer);
-  window._saveTimer = setTimeout(function(){ el.style.display = 'none'; }, 2000);
+  window._saveTimer=setTimeout(function(){el.style.display='none';},2000);
 }
 
-function loadSaved() {
-  var key = localStorage.getItem('mts_apikey');
-  if (key) document.getElementById('apiKey').value = key;
-  var fields = ['tone','audience','length','complexity','artStyle','imgComplexity','colorScheme'];
-  fields.forEach(function(f) {
-    var v = localStorage.getItem('mts_def_' + f);
-    if (v) document.getElementById(f).value = v;
-  });
-  var textFields = ['avoid','styleNotes','channelName','channelTagline','globalAvoid'];
-  textFields.forEach(function(f) {
-    var v = localStorage.getItem('mts_' + f);
-    if (v && document.getElementById(f)) document.getElementById(f).value = v;
-  });
+function loadSaved(){
+  var key=localStorage.getItem('mts_apikey');
+  if(key)document.getElementById('apiKey').value=key;
+  var fields=['tone','audience','length','complexity','artStyle','imgComplexity','colorScheme'];
+  fields.forEach(function(f){var v=localStorage.getItem('mts_def_'+f);if(v)document.getElementById(f).value=v;});
+  var textFields=['avoid','styleNotes','channelName','channelTagline','globalAvoid'];
+  textFields.forEach(function(f){var v=localStorage.getItem('mts_'+f);if(v&&document.getElementById(f))document.getElementById(f).value=v;});
 }
 
-function saveDefaults() {
-  var fields = ['tone','audience','length','complexity','artStyle','imgComplexity','colorScheme','avoid','styleNotes'];
-  fields.forEach(function(f) {
-    localStorage.setItem('mts_def_' + f, document.getElementById(f).value);
-  });
+function saveDefaults(){
+  var fields=['tone','audience','length','complexity','artStyle','imgComplexity','colorScheme','avoid','styleNotes'];
+  fields.forEach(function(f){localStorage.setItem('mts_def_'+f,document.getElementById(f).value);});
   showSaveIndicator();
-  alert('Default settings saved! They will load automatically next time.');
+  alert('Default settings saved!');
 }
 
-function resetDefaults() {
-  var fields = ['tone','audience','length','complexity','artStyle','imgComplexity','colorScheme','avoid','styleNotes'];
-  fields.forEach(function(f) { localStorage.removeItem('mts_def_' + f); });
+function resetDefaults(){
+  var fields=['tone','audience','length','complexity','artStyle','imgComplexity','colorScheme','avoid','styleNotes'];
+  fields.forEach(function(f){localStorage.removeItem('mts_def_'+f);});
   alert('Settings reset to factory defaults.');
 }
 
-function applyPreset(name) {
-  var presets = {
-    beginner: { tone:'friendly and conversational', audience:'complete beginners with no music knowledge', complexity:'extremely simple, no jargon, plain everyday language', artStyle:'clean minimalist whiteboard illustration, bold black marker on white background', imgComplexity:'extremely minimal, just one or two key elements, lots of empty space', colorScheme:'black and white only, no colour' },
-    kids: { tone:'humorous and playful', audience:'children aged 8-12', complexity:'extremely simple, no jargon, plain everyday language', artStyle:'flat clean digital illustration, simple shapes, muted pastel colors', imgComplexity:'moderate detail, clear focal point, some supporting elements', colorScheme:'bold primary colours, high contrast' },
-    professional: { tone:'professional and clear', audience:'intermediate music students', complexity:'moderate, assumes basic music awareness', artStyle:'clean minimalist whiteboard illustration, bold black marker on white background', imgComplexity:'moderate detail, clear focal point, some supporting elements', colorScheme:'black and white only, no colour' },
-    storytelling: { tone:'storytelling and engaging', audience:'adults learning music for the first time', complexity:'simple with occasional music terms explained clearly', artStyle:'friendly hand-drawn sketch on aged parchment paper, ink style, warm tones', imgComplexity:'moderate detail, clear focal point, some supporting elements', colorScheme:'warm sepia tones, cream and brown' }
+function applyPreset(name,el){
+  var presets={
+    beginner:{tone:'friendly and conversational',audience:'complete beginners with no music knowledge',complexity:'extremely simple, no jargon, plain everyday language',artStyle:'clean minimalist whiteboard illustration, bold black marker on white background',imgComplexity:'extremely minimal, just one or two key elements, lots of empty space',colorScheme:'black and white only, no colour'},
+    kids:{tone:'humorous and playful',audience:'children aged 8-12',complexity:'extremely simple, no jargon, plain everyday language',artStyle:'flat clean digital illustration, simple shapes, muted pastel colors',imgComplexity:'moderate detail, clear focal point, some supporting elements',colorScheme:'bold primary colours, high contrast'},
+    professional:{tone:'professional and clear',audience:'intermediate music students',complexity:'moderate, assumes basic music awareness',artStyle:'clean minimalist whiteboard illustration, bold black marker on white background',imgComplexity:'moderate detail, clear focal point, some supporting elements',colorScheme:'black and white only, no colour'},
+    storytelling:{tone:'storytelling and engaging',audience:'adults learning music for the first time',complexity:'simple with occasional music terms explained clearly',artStyle:'friendly hand-drawn sketch on aged parchment paper, ink style, warm tones',imgComplexity:'moderate detail, clear focal point, some supporting elements',colorScheme:'warm sepia tones, cream and brown'}
   };
-  var p = presets[name];
-  if (!p) return;
-  Object.keys(p).forEach(function(k){ document.getElementById(k).value = p[k]; });
-  document.querySelectorAll('.preset-card').forEach(function(c){ c.classList.remove('active'); });
-  event.currentTarget.classList.add('active');
-  showPage('generate', document.querySelector('.tab'));
-  document.querySelector('.tab').classList.add('active');
+  var p=presets[name];if(!p)return;
+  Object.keys(p).forEach(function(k){document.getElementById(k).value=p[k];});
+  document.querySelectorAll('.preset-card').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active');
+  var genTab=document.querySelectorAll('.tab')[0];
+  showPage('generate',genTab);
 }
 
-function setStatus(msg, type) {
-  var el = document.getElementById('statusMsg');
-  el.textContent = msg;
-  el.className = 'status show ' + type;
-}
+function setStatus(msg,type){var el=document.getElementById('statusMsg');el.textContent=msg;el.className='status show '+type;}
+function hideStatus(){document.getElementById('statusMsg').className='status';}
+function setProgress(pct,label){document.getElementById('progressWrap').className='progress-wrap show';document.getElementById('progressLabel').textContent=label;document.getElementById('progressFill').style.width=pct+'%';}
+function hideProgress(){document.getElementById('progressWrap').className='progress-wrap';}
 
-function hideStatus() {
-  document.getElementById('statusMsg').className = 'status';
-}
+async function generate(){
+  var key=document.getElementById('apiKey').value.trim();
+  var topic=document.getElementById('topic').value.trim();
+  if(!key){setStatus('Please enter your Gemini API key.','error');return;}
+  if(!topic){setStatus('Please enter a video topic.','error');return;}
 
-function setProgress(pct, label) {
-  var wrap = document.getElementById('progressWrap');
-  wrap.className = 'progress-wrap show';
-  document.getElementById('progressLabel').textContent = label;
-  document.getElementById('progressFill').style.width = pct + '%';
-}
+  var tone=document.getElementById('tone').value;
+  var audience=document.getElementById('audience').value;
+  var length=document.getElementById('length').value;
+  var complexity=document.getElementById('complexity').value;
+  var avoid=document.getElementById('avoid').value.trim();
+  var globalAvoid=localStorage.getItem('mts_globalAvoid')||'';
+  var artStyle=document.getElementById('artStyle').value;
+  var imgComplexity=document.getElementById('imgComplexity').value;
+  var colorScheme=document.getElementById('colorScheme').value;
+  var styleNotes=document.getElementById('styleNotes').value.trim();
+  var channelName=localStorage.getItem('mts_channelName')||'';
 
-function hideProgress() {
-  document.getElementById('progressWrap').className = 'progress-wrap';
-}
+  var allAvoid=[avoid,globalAvoid].filter(Boolean).join(', ');
+  var avoidClause=allAvoid?' Never use these words or phrases: '+allAvoid+'.':'';
+  var styleClause=styleNotes?' Additional image notes: '+styleNotes+'.':'';
+  var channelClause=channelName?' This is for a YouTube channel called "'+channelName+'".':'';
 
-async function generate() {
-  var key = document.getElementById('apiKey').value.trim();
-  var topic = document.getElementById('topic').value.trim();
-  if (!key) { setStatus('Please enter your Gemini API key.', 'error'); return; }
-  if (!topic) { setStatus('Please enter a video topic.', 'error'); return; }
-
-  var btn = document.getElementById('generateBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Generating...';
-  document.getElementById('output').innerHTML = '';
+  var btn=document.getElementById('generateBtn');
+  btn.disabled=true;
+  btn.innerHTML='<svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Generating...';
+  document.getElementById('output').innerHTML='';
   hideStatus();
+  setProgress(10,'Step 1 of 2 — Writing your script...');
 
-  var tone = document.getElementById('tone').value;
-  var audience = document.getElementById('audience').value;
-  var length = document.getElementById('length').value;
-  var complexity = document.getElementById('complexity').value;
-  var avoid = document.getElementById('avoid').value.trim();
-  var globalAvoid = localStorage.getItem('mts_globalAvoid') || '';
-  var artStyle = document.getElementById('artStyle').value;
-  var imgComplexity = document.getElementById('imgComplexity').value;
-  var colorScheme = document.getElementById('colorScheme').value;
-  var styleNotes = document.getElementById('styleNotes').value.trim();
+  var scriptPrompt='You are writing a YouTube video script about music theory.'+channelClause+' Audience: '+audience+'. Topic: '+topic+'. Tone: '+tone+'. Length: '+length+'. Language: '+complexity+'.'+avoidClause+' Write ONLY the spoken narration split into numbered scenes. Each scene is 1-3 sentences maximum. Format strictly as:\nSCENE 1: [text]\nSCENE 2: [text]\nNo intro, no meta text, no headings. Just the scenes.';
 
-  var allAvoid = [avoid, globalAvoid].filter(Boolean).join(', ');
-  var avoidClause = allAvoid ? ' Never use these words or phrases: ' + allAvoid + '.' : '';
-  var styleClause = styleNotes ? ' Additional image notes: ' + styleNotes + '.' : '';
-  var channelName = localStorage.getItem('mts_channelName') || '';
-  var channelClause = channelName ? ' This is for a YouTube channel called "' + channelName + '".' : '';
-
-  setProgress(10, 'Step 1 of 2 — Writing your script...');
-
-  var scriptPrompt = 'You are writing a YouTube video script about music theory.' + channelClause + ' Audience: ' + audience + '. Topic: ' + topic + '. Tone: ' + tone + '. Length: ' + length + '. Language: ' + complexity + '.' + avoidClause + ' Write ONLY the spoken narration split into numbered scenes. Each scene is 1-3 sentences maximum. Format strictly as:\nSCENE 1: [text]\nSCENE 2: [text]\nNo intro, no meta text, no headings. Just the scenes.';
-
-  try {
-    var r1 = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: scriptPrompt }] }] })
+  try{
+    var r1=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:scriptPrompt}]}]})
     });
 
-    if (!r1.ok) {
-      var e1 = await r1.json();
-      throw new Error(e1.error && e1.error.message ? e1.error.message : 'API error ' + r1.status);
-    }
+    if(!r1.ok){var e1=await r1.json();throw new Error(e1.error&&e1.error.message?e1.error.message:'API error '+r1.status);}
 
-    var d1 = await r1.json();
-    var rawScript = d1.candidates[0].content.parts[0].text;
-
-    var scenes = [];
-    var re = /SCENE\s*\d+\s*:\s*([\s\S]*?)(?=SCENE\s*\d+\s*:|$)/gi;
+    var d1=await r1.json();
+    var rawScript=d1.candidates[0].content.parts[0].text;
+    var scenes=[];
+    var re=/SCENE\s*\d+\s*:\s*([\s\S]*?)(?=SCENE\s*\d+\s*:|$)/gi;
     var m;
-    while ((m = re.exec(rawScript)) !== null) {
-      var t = m[1].trim();
-      if (t) scenes.push(t);
-    }
-    if (scenes.length === 0) {
-      scenes = rawScript.split('\n').filter(function(l){ return l.trim().length > 20; });
-    }
+    while((m=re.exec(rawScript))!==null){var t=m[1].trim();if(t)scenes.push(t);}
+    if(scenes.length===0)scenes=rawScript.split('\n').filter(function(l){return l.trim().length>20;});
 
-    setProgress(55, 'Step 2 of 2 — Creating image prompts for ' + scenes.length + ' scenes...');
+    setProgress(55,'Step 2 of 2 — Creating image prompts for '+scenes.length+' scenes...');
 
-    var promptPrompt = 'For each scene from a music theory YouTube video, write one image generation prompt. EVERY image must use this style: ' + artStyle + ', ' + imgComplexity + ', ' + colorScheme + '.' + styleClause + ' Each prompt must directly illustrate the scene content. Keep each prompt under 40 words. Output ONLY numbered prompts:\n1. [prompt]\n2. [prompt]\netc.\n\nScenes:\n' + scenes.map(function(s, i){ return (i+1) + '. ' + s; }).join('\n');
+    var promptPrompt='For each scene from a music theory YouTube video, write one image generation prompt. EVERY image must use this style: '+artStyle+', '+imgComplexity+', '+colorScheme+'.'+styleClause+' Each prompt must directly illustrate the scene content. Keep each prompt under 40 words. Output ONLY numbered prompts:\n1. [prompt]\n2. [prompt]\netc.\n\nScenes:\n'+scenes.map(function(s,i){return(i+1)+'. '+s;}).join('\n');
 
-    var r2 = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: promptPrompt }] }] })
+    var r2=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:promptPrompt}]}]})
     });
 
-    var d2 = await r2.json();
-    var rawPrompts = d2.candidates[0].content.parts[0].text;
-    var promptLines = rawPrompts.split('\n').filter(function(l){ return /^\d+\./.test(l.trim()); });
-    var imagePrompts = promptLines.map(function(l){ return l.replace(/^\d+\.\s*/, '').trim(); });
-    while (imagePrompts.length < scenes.length) imagePrompts.push('Simple music theory illustration. ' + artStyle + '. ' + colorScheme + '.');
+    var d2=await r2.json();
+    var rawPrompts=d2.candidates[0].content.parts[0].text;
+    var promptLines=rawPrompts.split('\n').filter(function(l){return /^\d+\./.test(l.trim());});
+    var imagePrompts=promptLines.map(function(l){return l.replace(/^\d+\.\s*/,'').trim();});
+    while(imagePrompts.length<scenes.length)imagePrompts.push('Simple music theory illustration. '+artStyle+'. '+colorScheme+'.');
 
-    setProgress(100, 'Done!');
-    setTimeout(hideProgress, 800);
-    setStatus('Generated ' + scenes.length + ' scenes successfully.', 'success');
+    setProgress(100,'Done!');
+    setTimeout(hideProgress,800);
+    setStatus('Generated '+scenes.length+' scenes successfully.','success');
 
-    currentResults = { topic: topic, scenes: scenes, prompts: imagePrompts, tone: tone, artStyle: artStyle, colorScheme: colorScheme, date: new Date().toISOString() };
+    currentResults={topic:topic,scenes:scenes,prompts:imagePrompts,tone:tone,artStyle:artStyle,colorScheme:colorScheme,date:new Date().toISOString()};
     saveToHistory(currentResults);
     renderOutput(currentResults);
 
-  } catch(err) {
+  }catch(err){
     hideProgress();
-    setStatus('Error: ' + err.message, 'error');
+    setStatus('Error: '+err.message,'error');
   }
 
-  btn.disabled = false;
-  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Generate Script + Image Prompts';
+  btn.disabled=false;
+  btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Generate Script + Image Prompts';
 }
 
-function renderOutput(data) {
-  var html = '<div class="results-header" style="margin-top:32px;">'
-    + '<div><div class="results-title">' + escHtml(data.topic) + '</div>'
-    + '<div class="results-sub">' + data.scenes.length + ' scenes &middot; ' + data.tone + ' &middot; ' + data.colorScheme + '</div></div>'
-    + '<div style="display:flex;gap:8px;">'
-    + '<button class="btn" onclick="exportScript()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export</button>'
-    + '<button class="btn" onclick="copyAllPrompts()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy all prompts</button>'
-    + '</div></div>';
+function renderOutput(data){
+  var html='<div class="results-header" style="margin-top:32px;">'
+    +'<div><div class="results-title">'+escHtml(data.topic)+'</div>'
+    +'<div class="results-sub">'+data.scenes.length+' scenes &middot; '+data.tone+' &middot; '+data.colorScheme+'</div></div>'
+    +'<div style="display:flex;gap:8px;">'
+    +'<button class="btn" onclick="exportScript()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export</button>'
+    +'<button class="btn" onclick="copyAllPrompts()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy all prompts</button>'
+    +'</div></div>';
 
-  for (var i = 0; i < data.scenes.length; i++) {
-    var p = data.prompts[i] || '';
-    html += '<div class="scene-card">'
-      + '<div class="scene-header">'
-      + '<span class="scene-num">Scene ' + (i+1) + '</span>'
-      + '<div class="scene-copy">'
-      + '<button class="btn" style="padding:5px 12px;font-size:12px;" onclick="copyText(\'' + escJs(p) + '\', this)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy prompt</button>'
-      + '</div></div>'
-      + '<div class="scene-text">' + escHtml(data.scenes[i]) + '</div>'
-      + '<div class="scene-prompt-label">Image prompt</div>'
-      + '<div class="scene-prompt">' + escHtml(p) + '</div>'
-      + '</div>';
+  for(var i=0;i<data.scenes.length;i++){
+    var p=data.prompts[i]||'';
+    html+='<div class="scene-card">'
+      +'<div class="scene-header"><span class="scene-num">Scene '+(i+1)+'</span>'
+      +'<button class="btn" style="padding:5px 12px;font-size:12px;" onclick="copyText(\''+escJs(p)+'\',this)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy prompt</button></div>'
+      +'<div class="scene-text">'+escHtml(data.scenes[i])+'</div>'
+      +'<div class="scene-prompt-label">Image prompt</div>'
+      +'<div class="scene-prompt">'+escHtml(p)+'</div>'
+      +'</div>';
   }
-
-  document.getElementById('output').innerHTML = html;
+  document.getElementById('output').innerHTML=html;
 }
 
-function copyText(text, btn) {
+function copyText(text,btn){
   navigator.clipboard.writeText(text).then(function(){
-    var orig = btn.innerHTML;
-    btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
-    setTimeout(function(){ btn.innerHTML = orig; }, 1800);
+    var orig=btn.innerHTML;
+    btn.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+    setTimeout(function(){btn.innerHTML=orig;},1800);
   });
 }
 
-function copyAllPrompts() {
-  if (!currentResults) return;
-  var text = currentResults.prompts.map(function(p, i){ return 'Scene ' + (i+1) + ':\n' + p; }).join('\n\n');
-  navigator.clipboard.writeText(text).then(function(){ setStatus('All image prompts copied to clipboard!', 'success'); });
+function copyAllPrompts(){
+  if(!currentResults)return;
+  var text=currentResults.prompts.map(function(p,i){return'Scene '+(i+1)+':\n'+p;}).join('\n\n');
+  navigator.clipboard.writeText(text).then(function(){setStatus('All image prompts copied!','success');});
 }
 
-function exportScript() {
-  if (!currentResults) return;
-  var lines = ['TOPIC: ' + currentResults.topic, 'DATE: ' + new Date(currentResults.date).toLocaleDateString(), 'TONE: ' + currentResults.tone, '','--- SCRIPT & IMAGE PROMPTS ---',''];
-  currentResults.scenes.forEach(function(s, i){
-    lines.push('SCENE ' + (i+1) + ':');
-    lines.push(s);
-    lines.push('');
-    lines.push('IMAGE PROMPT:');
-    lines.push(currentResults.prompts[i] || '');
-    lines.push('');
-    lines.push('---');
-    lines.push('');
+function exportScript(){
+  if(!currentResults)return;
+  var lines=['TOPIC: '+currentResults.topic,'DATE: '+new Date(currentResults.date).toLocaleDateString(),'TONE: '+currentResults.tone,'','--- SCRIPT & IMAGE PROMPTS ---',''];
+  currentResults.scenes.forEach(function(s,i){
+    lines.push('SCENE '+(i+1)+':');lines.push(s);lines.push('');
+    lines.push('IMAGE PROMPT:');lines.push(currentResults.prompts[i]||'');lines.push('');lines.push('---');lines.push('');
   });
-  var blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = currentResults.topic.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.txt';
+  var blob=new Blob([lines.join('\n')],{type:'text/plain'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=currentResults.topic.replace(/[^a-z0-9]/gi,'_').toLowerCase()+'.txt';
   a.click();
 }
 
-function exportAllData() {
-  var data = {};
-  for (var i = 0; i < localStorage.length; i++) {
-    var k = localStorage.key(i);
-    if (k.startsWith('mts_')) data[k] = localStorage.getItem(k);
-  }
-  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'music_theory_studio_backup.json';
-  a.click();
+function exportAllData(){
+  var data={};
+  for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k.startsWith('mts_'))data[k]=localStorage.getItem(k);}
+  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='music_theory_studio_backup.json';a.click();
 }
 
-function saveToHistory(data) {
-  var history = getHistory();
-  history.unshift(data);
-  if (history.length > 50) history = history.slice(0, 50);
-  localStorage.setItem('mts_history', JSON.stringify(history));
+function saveToHistory(data){
+  var history=getHistory();history.unshift(data);
+  if(history.length>50)history=history.slice(0,50);
+  localStorage.setItem('mts_history',JSON.stringify(history));
 }
 
-function getHistory() {
-  try { return JSON.parse(localStorage.getItem('mts_history') || '[]'); } catch(e) { return []; }
-}
+function getHistory(){try{return JSON.parse(localStorage.getItem('mts_history')||'[]');}catch(e){return[];}}
 
-function renderHistory() {
-  var history = getHistory();
-  var el = document.getElementById('historyList');
-  if (history.length === 0) {
-    el.innerHTML = '<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>No videos generated yet.<br>Head to Generate to create your first one.</p></div>';
-    return;
-  }
-  var html = '';
-  history.forEach(function(item, idx) {
-    var d = new Date(item.date);
-    html += '<div class="history-item" onclick="loadFromHistory(' + idx + ')">'
-      + '<div class="history-meta">'
-      + '<div class="history-topic">' + escHtml(item.topic) + '</div>'
-      + '<div class="history-date">' + d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) + '</div>'
-      + '</div>'
-      + '<div class="history-tags">'
-      + '<span class="tag">' + item.scenes.length + ' scenes</span>'
-      + '<span class="tag">' + item.tone + '</span>'
-      + '<span class="tag">' + item.colorScheme + '</span>'
-      + '</div></div>';
+function renderHistory(){
+  var history=getHistory();
+  var el=document.getElementById('historyList');
+  if(history.length===0){el.innerHTML='<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>No videos generated yet.<br>Head to Generate to create your first one.</p></div>';return;}
+  var html='';
+  history.forEach(function(item,idx){
+    var d=new Date(item.date);
+    html+='<div class="history-item" onclick="loadFromHistory('+idx+')">'
+      +'<div class="history-meta"><div class="history-topic">'+escHtml(item.topic)+'</div>'
+      +'<div class="history-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'</div></div>'
+      +'<div class="history-tags"><span class="tag">'+item.scenes.length+' scenes</span><span class="tag">'+item.tone+'</span><span class="tag">'+item.colorScheme+'</span></div></div>';
   });
-  el.innerHTML = html;
+  el.innerHTML=html;
 }
 
-function loadFromHistory(idx) {
-  var history = getHistory();
-  var item = history[idx];
-  if (!item) return;
-  currentResults = item;
-  document.getElementById('topic').value = item.topic;
-  showPage('generate', document.querySelectorAll('.tab')[0]);
-  document.querySelectorAll('.tab')[0].classList.add('active');
-  renderOutput(item);
-  window.scrollTo(0, 0);
+function loadFromHistory(idx){
+  var history=getHistory();var item=history[idx];if(!item)return;
+  currentResults=item;
+  document.getElementById('topic').value=item.topic;
+  var genTab=document.querySelectorAll('.tab')[0];
+  showPage('generate',genTab);
+  renderOutput(item);window.scrollTo(0,0);
 }
 
-function clearHistory() {
-  if (confirm('Clear all video history?')) {
-    localStorage.removeItem('mts_history');
-    renderHistory();
+function clearHistory(){if(confirm('Clear all video history?')){localStorage.removeItem('mts_history');renderHistory();}}
+
+function clearAllData(){
+  if(confirm('This will delete all saved settings, history, and your API key. Are you sure?')){
+    var keys=[];
+    for(var i=0;i<localStorage.length;i++){if(localStorage.key(i).startsWith('mts_'))keys.push(localStorage.key(i));}
+    keys.forEach(function(k){localStorage.removeItem(k);});
+    loadSaved();alert('All data cleared.');
   }
 }
 
-function clearAllData() {
-  if (confirm('This will delete all saved settings, history, and your API key. Are you sure?')) {
-    var keys = [];
-    for (var i = 0; i < localStorage.length; i++) {
-      if (localStorage.key(i).startsWith('mts_')) keys.push(localStorage.key(i));
-    }
-    keys.forEach(function(k){ localStorage.removeItem(k); });
-    loadSaved();
-    alert('All data cleared.');
-  }
-}
-
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function escJs(s) {
-  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
-}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function escJs(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');}
 
 loadSaved();
 </script>
