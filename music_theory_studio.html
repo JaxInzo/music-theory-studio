@@ -3,14 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Music Theory YouTube Studio</title>
+<title>MusicIsEasy — Content Studio</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:#0f0e0c;--bg2:#1a1814;--bg3:#242018;
+  :root{
+    --bg:#0f0e0c;--bg2:#1a1814;--bg3:#242018;--bg4:#2e2820;
     --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
     --gold:#c9a84c;--gold2:#e8c96a;--gold-dim:rgba(201,168,76,0.15);
     --coral:#e8644a;--coral-dim:rgba(232,100,74,0.12);
+    --sky:#5b9fd4;
     --text:#f0ece4;--text2:#a09880;--text3:#6a6050;
     --green:#4caf82;--green-bg:rgba(76,175,130,0.1);
     --red:#e05555;--red-bg:rgba(224,85,85,0.1);
@@ -22,13 +23,13 @@
   .header{border-bottom:0.5px solid var(--border);padding:20px 32px;display:flex;align-items:center;justify-content:space-between;background:var(--bg2);position:sticky;top:0;z-index:100;}
   .logo{display:flex;align-items:center;gap:12px;}
   .logo-icon{width:36px;height:36px;background:var(--gold-dim);border:0.5px solid var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;}
-  .logo-text{font-family:'Playfair Display',serif;font-size:18px;color:var(--gold2);letter-spacing:0.01em;}
+  .logo-text{font-family:'Playfair Display',serif;font-size:18px;color:var(--gold2);}
   .logo-sub{font-size:11px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;}
   .tabs{display:flex;gap:2px;padding:16px 32px 0;border-bottom:0.5px solid var(--border);background:var(--bg2);overflow-x:auto;}
-  .tab{padding:10px 18px;font-size:13px;color:var(--text3);cursor:pointer;border-radius:var(--radius) var(--radius) 0 0;border:0.5px solid transparent;background:none;font-family:'DM Sans',sans-serif;transition:all 0.2s;letter-spacing:0.02em;white-space:nowrap;}
+  .tab{padding:10px 18px;font-size:13px;color:var(--text3);cursor:pointer;border-radius:var(--radius) var(--radius) 0 0;border:0.5px solid transparent;background:none;font-family:'DM Sans',sans-serif;transition:all 0.2s;white-space:nowrap;}
   .tab:hover{color:var(--text2);background:var(--bg3);}
   .tab.active{color:var(--gold2);background:var(--bg);border-color:var(--border);border-bottom-color:var(--bg);margin-bottom:-0.5px;}
-  .main{max-width:960px;margin:0 auto;padding:32px 32px 80px;}
+  .main{max-width:980px;margin:0 auto;padding:32px 32px 80px;}
   .page{display:none;}.page.active{display:block;}
   .card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:16px;}
   .card-title{font-family:'Playfair Display',serif;font-size:15px;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
@@ -37,20 +38,19 @@
   input[type=text],input[type=password],textarea,select{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;outline:none;transition:border-color 0.2s;appearance:none;}
   input[type=text]:focus,input[type=password]:focus,textarea:focus,select:focus{border-color:var(--gold);}
   input::placeholder,textarea::placeholder{color:var(--text3);}
-  textarea{resize:vertical;min-height:80px;}
   select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236a6050' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer;}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
   .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
   .pw-wrap{position:relative;}.pw-wrap input{padding-right:44px;}
   .pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);padding:0;display:flex;align-items:center;}
-  .pw-toggle:hover{color:var(--text2);}
   .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all 0.18s;font-weight:400;text-decoration:none;}
   .btn:hover{background:var(--bg2);color:var(--text);}
   .btn:active{transform:scale(0.98);}
   .btn-gold{background:var(--gold);border-color:var(--gold);color:#1a1408;font-weight:500;}
   .btn-gold:hover{background:var(--gold2);border-color:var(--gold2);color:#1a1408;}
   .btn-coral{background:var(--coral);border-color:var(--coral);color:#fff;font-weight:500;}
-  .btn-coral:hover{background:#f07055;border-color:#f07055;color:#fff;}
+  .btn-coral:hover{background:#f07055;color:#fff;}
+  .btn-sky{background:var(--sky);border-color:var(--sky);color:#fff;font-weight:500;}
   .btn-lg{width:100%;justify-content:center;padding:14px 24px;font-size:15px;font-weight:500;border-radius:var(--radius-lg);margin-top:8px;}
   .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
   .status{padding:12px 16px;border-radius:var(--radius);font-size:13px;margin-bottom:16px;display:none;}
@@ -58,48 +58,52 @@
   .status.info{background:var(--blue-bg);color:var(--blue);border:0.5px solid rgba(91,155,213,0.2);}
   .status.success{background:var(--green-bg);color:var(--green);border:0.5px solid rgba(76,175,130,0.2);}
   .status.error{background:var(--red-bg);color:var(--red);border:0.5px solid rgba(224,85,85,0.2);}
+  .status.warning{background:rgba(201,168,76,0.08);color:var(--gold);border:0.5px solid rgba(201,168,76,0.2);}
   .progress-wrap{margin-bottom:16px;display:none;}.progress-wrap.show{display:block;}
   .progress-label{font-size:12px;color:var(--text3);margin-bottom:6px;}
   .progress-bar-bg{background:var(--bg3);border-radius:99px;height:4px;overflow:hidden;}
   .progress-bar-fill{height:4px;background:var(--gold);border-radius:99px;transition:width 0.4s ease;width:0%;}
-  .scene-card{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;transition:border-color 0.2s;}
-  .scene-card:hover{border-color:var(--border2);}
-  .scene-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-  .scene-num{font-size:11px;font-weight:500;color:var(--gold);letter-spacing:0.08em;text-transform:uppercase;}
-  .scene-text{font-size:14px;color:var(--text);line-height:1.6;margin-bottom:10px;}
-  .scene-prompt-label{font-size:11px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px;}
-  .scene-prompt{font-size:13px;color:var(--text2);line-height:1.5;font-style:italic;background:var(--bg2);border-radius:6px;padding:8px 12px;border:0.5px solid var(--border);}
+  .drop-zone{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg3);}
+  .drop-zone:hover,.drop-zone.dragover{border-color:var(--gold);background:var(--gold-dim);}
+  .drop-zone input{display:none;}
+  .workflow-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;}
+  .wf-step{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;}
+  .wf-num{width:28px;height:28px;border-radius:50%;background:var(--gold-dim);border:0.5px solid var(--gold);color:var(--gold);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;}
+  .wf-label{font-size:12px;color:var(--text2);line-height:1.4;}
+  .wf-step.active-step .wf-num{background:var(--gold);color:#1a1408;}
+  .wf-step.active-step{border-color:var(--gold);}
+  /* Image grid */
+  .img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:16px;}
+  .img-card{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;position:relative;transition:border-color 0.2s;}
+  .img-card.flagged{border-color:var(--red);border-width:1.5px;}
+  .img-card.approved{border-color:var(--green);}
+  .img-placeholder{width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;background:var(--bg4);flex-direction:column;gap:6px;}
+  .img-el{width:100%;aspect-ratio:16/9;object-fit:cover;display:none;}
+  .img-footer{padding:8px 10px;background:var(--bg2);}
+  .img-scene-label{font-size:10px;color:var(--gold);font-weight:500;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:2px;}
+  .img-spoken{font-size:11px;color:var(--text3);line-height:1.4;margin-bottom:6px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .img-actions{display:flex;gap:4px;flex-wrap:wrap;}
+  .img-btn{font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;border:0.5px solid var(--border2);background:var(--bg3);color:var(--text3);font-family:'DM Sans',sans-serif;}
+  .img-btn:hover{background:var(--bg2);color:var(--text2);}
+  .img-btn.regen{border-color:rgba(201,168,76,0.4);color:var(--gold);}
+  .img-btn.dl{border-color:rgba(76,175,130,0.4);color:var(--green);}
+  /* History */
   .history-item{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:12px;cursor:pointer;transition:all 0.2s;}
   .history-item:hover{border-color:var(--gold);}
-  .history-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
-  .history-topic{font-family:'Playfair Display',serif;font-size:16px;color:var(--text);}
-  .history-date{font-size:11px;color:var(--text3);}
-  .history-tags{display:flex;gap:6px;flex-wrap:wrap;}
-  .tag{display:inline-block;font-size:11px;padding:2px 10px;border-radius:99px;background:var(--bg3);color:var(--text3);border:0.5px solid var(--border);}
   .empty-state{text-align:center;padding:60px 20px;color:var(--text3);}
   .preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
   .preset-card{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:all 0.18s;}
   .preset-card:hover,.preset-card.active{border-color:var(--gold);background:var(--gold-dim);}
   .preset-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px;}
   .preset-desc{font-size:12px;color:var(--text3);}
-  .results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:0.5px solid var(--border);flex-wrap:wrap;gap:10px;}
-  .results-title{font-family:'Playfair Display',serif;font-size:22px;color:var(--text);}
-  .results-sub{font-size:13px;color:var(--text3);margin-top:2px;}
   .save-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;}
-  .workflow-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
-  .wf-step{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;}
-  .wf-num{width:28px;height:28px;border-radius:50%;background:var(--gold-dim);border:0.5px solid var(--gold);color:var(--gold);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;}
-  .wf-label{font-size:12px;color:var(--text2);line-height:1.4;}
-  .wf-step.active-step .wf-num{background:var(--gold);color:#1a1408;}
-  .wf-step.active-step{border-color:var(--gold);}
-  .srt-drop{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg3);}
-  .srt-drop:hover,.srt-drop.dragover{border-color:var(--gold);background:var(--gold-dim);}
-  .srt-drop input{display:none;}
   @keyframes spin{to{transform:rotate(360deg);}}
   .spinner{animation:spin 0.8s linear infinite;display:inline-block;}
+  @keyframes pulse{0%,100%{opacity:0.3;}50%{opacity:1;}}
+  .pulsing{animation:pulse 1.5s ease infinite;}
   ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:var(--bg);}
   ::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px;}
-  @media(max-width:600px){.grid2,.grid3,.workflow-steps{grid-template-columns:1fr;}.main{padding:20px 16px 60px;}.header{padding:16px;}}
+  @media(max-width:600px){.grid2,.grid3,.workflow-steps{grid-template-columns:1fr;}.main{padding:20px 16px 60px;}.header,.tabs{padding-left:16px;padding-right:16px;}}
 </style>
 </head>
 <body>
@@ -108,64 +112,56 @@
   <div class="logo">
     <div class="logo-icon">&#9835;</div>
     <div>
-      <div class="logo-text">Music Theory Studio</div>
+      <div class="logo-text">MusicIsEasy Studio</div>
       <div class="logo-sub">YouTube Content Generator</div>
     </div>
   </div>
-  <span id="saveIndicator" style="font-size:12px;color:var(--text3);display:none;"><span class="save-dot"></span>Settings saved</span>
+  <span id="saveIndicator" style="font-size:12px;color:var(--text3);display:none;"><span class="save-dot"></span>Saved</span>
 </div>
 
 <div class="tabs">
   <button class="tab active" onclick="showPage('generate',this)">1. Generate Script</button>
-  <button class="tab" onclick="showPage('srt',this)">2. SRT → Image Prompts</button>
+  <button class="tab" onclick="showPage('produce',this)">2. Produce Video</button>
   <button class="tab" onclick="showPage('history',this)">History</button>
   <button class="tab" onclick="showPage('settings',this)">Settings</button>
 </div>
 
 <div class="main">
 
-  <!-- ===================== TAB 1: GENERATE SCRIPT ===================== -->
+  <!-- ===== TAB 1: GENERATE SCRIPT ===== -->
   <div class="page active" id="page-generate">
 
-    <!-- Workflow guide -->
     <div class="workflow-steps">
-      <div class="wf-step active-step">
-        <div class="wf-num">1</div>
-        <div class="wf-label">Generate full script here</div>
-      </div>
-      <div class="wf-step">
-        <div class="wf-num">2</div>
-        <div class="wf-label">Record your voiceover</div>
-      </div>
-      <div class="wf-step">
-        <div class="wf-num">3</div>
-        <div class="wf-label">Get SRT from TurboScribe</div>
-      </div>
-      <div class="wf-step">
-        <div class="wf-num">4</div>
-        <div class="wf-label">Upload SRT → get image prompts</div>
-      </div>
+      <div class="wf-step active-step"><div class="wf-num">1</div><div class="wf-label">Generate script here</div></div>
+      <div class="wf-step"><div class="wf-num">2</div><div class="wf-label">Record your voiceover</div></div>
+      <div class="wf-step"><div class="wf-num">3</div><div class="wf-label">Upload audio → images auto-generated &amp; synced</div></div>
     </div>
 
-    <!-- API Key -->
     <div class="card">
       <div class="card-title">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        API Key
+        API Keys
       </div>
-      <div class="field">
-        <label for="apiKey">Google Gemini API key — stored locally, never shared</label>
-        <div class="pw-wrap">
-          <input type="password" id="apiKey" placeholder="AIzaSy..." oninput="saveKey()">
-          <button class="pw-toggle" onclick="toggleKey()" aria-label="Show/hide key">
-            <svg id="eyeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
+      <div class="grid2">
+        <div class="field">
+          <label for="claudeKey">Anthropic API key — scripts &amp; scene detection</label>
+          <div class="pw-wrap">
+            <input type="password" id="claudeKey" placeholder="sk-ant-..." oninput="saveKey('claude',this.value)">
+            <button class="pw-toggle" onclick="toggleKey('claudeKey','eye1')" aria-label="Toggle"><svg id="eye1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+          <p style="font-size:11px;color:var(--text3);margin-top:4px;"><a href="https://console.anthropic.com" target="_blank" style="color:var(--gold);text-decoration:none;">console.anthropic.com</a></p>
         </div>
-        <p style="font-size:12px;color:var(--text3);margin-top:6px;">Get a free key at <a href="https://aistudio.google.com" target="_blank" style="color:var(--gold);text-decoration:none;">aistudio.google.com</a></p>
+        <div class="field">
+          <label for="hfKey">Hugging Face API key — image generation</label>
+          <div class="pw-wrap">
+            <input type="password" id="hfKey" placeholder="hf_..." oninput="saveKey('hf',this.value)">
+            <button class="pw-toggle" onclick="toggleKey('hfKey','eye2')" aria-label="Toggle"><svg id="eye2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+          <p style="font-size:11px;color:var(--text3);margin-top:4px;"><a href="https://huggingface.co/settings/tokens" target="_blank" style="color:var(--gold);text-decoration:none;">huggingface.co/settings/tokens</a></p>
+        </div>
       </div>
     </div>
 
-    <!-- Topic -->
     <div class="card">
       <div class="card-title">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
@@ -173,19 +169,14 @@
       </div>
       <div class="field">
         <label for="topic">What is this video about?</label>
-        <input type="text" id="topic" placeholder="e.g. Introduction to music notes on a staff">
+        <input type="text" id="topic" placeholder="e.g. The fundamentals of music — sound, rhythm and pitch">
       </div>
     </div>
 
-    <!-- Script settings -->
     <div class="card">
-      <div class="card-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Script Settings
-      </div>
+      <div class="card-title">Script Settings</div>
       <div class="grid2">
-        <div class="field">
-          <label for="tone">Tone</label>
+        <div class="field"><label for="tone">Tone</label>
           <select id="tone">
             <option value="friendly and conversational">Friendly &amp; conversational</option>
             <option value="humorous and playful">Humorous &amp; playful</option>
@@ -194,8 +185,7 @@
             <option value="simple and calm">Simple &amp; calm</option>
           </select>
         </div>
-        <div class="field">
-          <label for="audience">Audience</label>
+        <div class="field"><label for="audience">Audience</label>
           <select id="audience">
             <option value="complete beginners with no music knowledge">Complete beginners</option>
             <option value="children aged 8-12">Children (8–12)</option>
@@ -206,8 +196,7 @@
         </div>
       </div>
       <div class="grid2">
-        <div class="field">
-          <label for="length">Video length</label>
+        <div class="field"><label for="length">Video length</label>
           <select id="length">
             <option value="very short, around 60 seconds">Short (~1 min)</option>
             <option value="medium length, around 3 minutes" selected>Medium (~3 min)</option>
@@ -215,8 +204,7 @@
             <option value="around 8 minutes">Extended (~8 min)</option>
           </select>
         </div>
-        <div class="field">
-          <label for="complexity">Complexity</label>
+        <div class="field"><label for="complexity">Complexity</label>
           <select id="complexity">
             <option value="extremely simple, no jargon, plain everyday language">Extremely simple</option>
             <option value="simple with occasional music terms explained clearly" selected>Simple + explained terms</option>
@@ -224,16 +212,15 @@
           </select>
         </div>
       </div>
-      <div class="field">
-        <label for="avoid">Words or phrases to avoid (optional)</label>
-        <input type="text" id="avoid" placeholder="e.g. semitone, chromatic, technical Latin terms">
+      <div class="field"><label for="avoid">Words to avoid (optional)</label>
+        <input type="text" id="avoid" placeholder="e.g. semitone, chromatic">
       </div>
     </div>
 
-    <div id="statusMsg" class="status"></div>
-    <div class="progress-wrap" id="progressWrap">
-      <div class="progress-label" id="progressLabel">Generating...</div>
-      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+    <div id="genStatus" class="status"></div>
+    <div class="progress-wrap" id="genProgress">
+      <div class="progress-label" id="genLabel">Generating...</div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="genFill"></div></div>
     </div>
 
     <button class="btn btn-gold btn-lg" id="generateBtn" onclick="generateScript()">
@@ -245,54 +232,21 @@
   </div>
 
 
-  <!-- ===================== TAB 2: SRT → IMAGE PROMPTS ===================== -->
-  <div class="page" id="page-srt">
+  <!-- ===== TAB 2: PRODUCE VIDEO ===== -->
+  <div class="page" id="page-produce">
 
     <div class="workflow-steps">
-      <div class="wf-step">
-        <div class="wf-num">1</div>
-        <div class="wf-label">Script generated ✓</div>
-      </div>
-      <div class="wf-step">
-        <div class="wf-num">2</div>
-        <div class="wf-label">Voiceover recorded ✓</div>
-      </div>
-      <div class="wf-step">
-        <div class="wf-num">3</div>
-        <div class="wf-label">SRT from TurboScribe ✓</div>
-      </div>
-      <div class="wf-step active-step">
-        <div class="wf-num">4</div>
-        <div class="wf-label">Upload SRT → image prompts</div>
-      </div>
+      <div class="wf-step"><div class="wf-num">1</div><div class="wf-label">Script generated ✓</div></div>
+      <div class="wf-step"><div class="wf-num">2</div><div class="wf-label">Voiceover recorded ✓</div></div>
+      <div class="wf-step active-step"><div class="wf-num">3</div><div class="wf-label">Upload audio → everything happens automatically</div></div>
     </div>
 
+    <!-- Image style -->
     <div class="card">
-      <div class="card-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        API Key
-      </div>
-      <div class="field">
-        <label for="apiKey2">Google Gemini API key</label>
-        <div class="pw-wrap">
-          <input type="password" id="apiKey2" placeholder="AIzaSy..." oninput="localStorage.setItem('mts_apikey',this.value)">
-          <button class="pw-toggle" onclick="toggleKey2()" aria-label="Show/hide key">
-            <svg id="eyeIcon2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Image style settings for SRT tab -->
-    <div class="card">
-      <div class="card-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        Image Style
-      </div>
+      <div class="card-title">Image Style</div>
       <div class="grid2">
-        <div class="field">
-          <label for="srtArtStyle">Art style</label>
-          <select id="srtArtStyle">
+        <div class="field"><label for="artStyle">Art style</label>
+          <select id="artStyle">
             <option value="navy" selected>Brand Navy (default)</option>
             <option value="chalkboard">Navy Chalkboard</option>
             <option value="white">White &amp; Brand Colour</option>
@@ -300,9 +254,8 @@
             <option value="notebook">Cream Notebook Doodle</option>
           </select>
         </div>
-        <div class="field">
-          <label for="srtColorScheme">Colour scheme</label>
-          <select id="srtColorScheme">
+        <div class="field"><label for="colorScheme">Colour scheme</label>
+          <select id="colorScheme">
             <option value="full" selected>Full brand palette</option>
             <option value="navygold">Navy &amp; Gold</option>
             <option value="navycoral">Navy &amp; Coral</option>
@@ -311,124 +264,84 @@
           </select>
         </div>
       </div>
-      <div class="field">
-        <label for="srtStyleNotes">Extra image notes (optional)</label>
-        <input type="text" id="srtStyleNotes" placeholder="e.g. always show a full staff, keep notes large and clearly visible">
+      <div class="field"><label for="styleNotes">Extra image notes (optional)</label>
+        <input type="text" id="styleNotes" placeholder="e.g. always show a full 5-line staff, keep notes large and clear">
       </div>
     </div>
 
-    <!-- SRT Upload -->
+    <!-- Audio upload -->
     <div class="card">
       <div class="card-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Upload SRT File
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        Upload Voiceover Audio
       </div>
-      <div class="srt-drop" id="srtDrop" onclick="document.getElementById('srtFile').click()" ondragover="onDragSrt(event)" ondragleave="offDragSrt()" ondrop="onDropSrt(event)">
-        <input type="file" id="srtFile" accept=".srt,.txt" onchange="loadSRT(this.files)">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px;opacity:0.4;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        <p style="font-size:13px;color:var(--text3);"><strong style="color:var(--text2);">Click to upload</strong> or drag and drop your SRT file from TurboScribe</p>
+      <div class="drop-zone" id="audioZone" onclick="document.getElementById('audioFile').click()" ondragover="onDragAudio(event)" ondragleave="offDragAudio()" ondrop="onDropAudio(event)">
+        <input type="file" id="audioFile" accept=".mp3,.wav,.m4a,.ogg,.webm" onchange="handleAudio(this.files)">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px;opacity:0.4;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <p style="font-size:13px;color:var(--text3);"><strong style="color:var(--text2);">Click to upload</strong> or drag and drop your voiceover recording</p>
+        <p style="font-size:12px;color:var(--text3);margin-top:4px;">MP3, WAV, M4A supported — no TurboScribe needed</p>
       </div>
-      <div id="srtFileInfo" style="display:none;margin-top:10px;"></div>
-      <div id="srtStatus" class="status"></div>
+      <div id="audioInfo" style="display:none;margin-top:10px;"></div>
+      <div id="produceStatus" class="status"></div>
     </div>
 
-    <!-- SRT preview and generate -->
-    <div id="srtPromptsSection" style="display:none;">
-      <div class="card">
-        <div class="card-title">SRT Preview</div>
-        <div id="srtBlockPreview" style="max-height:200px;overflow-y:auto;"></div>
-      </div>
-
-      <div class="progress-wrap" id="srtProgressWrap">
-        <div class="progress-label" id="srtProgressLabel">Generating prompts...</div>
-        <div class="progress-bar-bg"><div class="progress-bar-fill" id="srtProgressFill"></div></div>
-      </div>
-
-      <button class="btn btn-coral btn-lg" id="srtGenerateBtn" onclick="generateFromSRT()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        Generate Image Prompts from SRT
-      </button>
+    <div class="progress-wrap" id="produceProgress">
+      <div class="progress-label" id="produceLabel">Working...</div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="produceFill"></div></div>
     </div>
 
-    <div id="srtOutput"></div>
+    <button class="btn btn-coral btn-lg" id="produceBtn" onclick="produceVideo()" style="display:none;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Transcribe, Sync &amp; Generate All Images
+    </button>
+
+    <div id="produceOutput"></div>
   </div>
 
 
-  <!-- ===================== TAB 3: HISTORY ===================== -->
+  <!-- ===== TAB 3: HISTORY ===== -->
   <div class="page" id="page-history">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
-      <div>
-        <h2 style="font-family:'Playfair Display',serif;font-size:22px;color:var(--text);">Video history</h2>
-        <p style="font-size:13px;color:var(--text3);margin-top:4px;">Your previously generated scripts</p>
-      </div>
+      <div><h2 style="font-family:'Playfair Display',serif;font-size:22px;">Video history</h2>
+      <p style="font-size:13px;color:var(--text3);margin-top:4px;">Previously generated scripts</p></div>
       <button class="btn" onclick="clearHistory()" style="color:var(--red);border-color:rgba(224,85,85,0.3);">Clear all</button>
     </div>
     <div id="historyList"></div>
   </div>
 
 
-  <!-- ===================== TAB 4: SETTINGS ===================== -->
+  <!-- ===== TAB 4: SETTINGS ===== -->
   <div class="page" id="page-settings">
-    <div style="margin-bottom:24px;">
-      <h2 style="font-family:'Playfair Display',serif;font-size:22px;color:var(--text);">Settings &amp; presets</h2>
-      <p style="font-size:13px;color:var(--text3);margin-top:4px;">Save your preferred defaults</p>
-    </div>
+    <div style="margin-bottom:24px;"><h2 style="font-family:'Playfair Display',serif;font-size:22px;">Settings &amp; presets</h2></div>
     <div class="card">
       <div class="card-title">Quick presets</div>
       <div class="preset-grid">
-        <div class="preset-card" onclick="applyPreset('beginner',this)">
-          <div class="preset-name">Beginner friendly</div>
-          <div class="preset-desc">Friendly tone, extremely simple, complete beginners</div>
-        </div>
-        <div class="preset-card" onclick="applyPreset('kids',this)">
-          <div class="preset-name">Kids channel</div>
-          <div class="preset-desc">Playful &amp; humorous, children 8–12</div>
-        </div>
-        <div class="preset-card" onclick="applyPreset('professional',this)">
-          <div class="preset-name">Professional</div>
-          <div class="preset-desc">Clear &amp; professional, intermediate students</div>
-        </div>
-        <div class="preset-card" onclick="applyPreset('storytelling',this)">
-          <div class="preset-name">Storytelling</div>
-          <div class="preset-desc">Storytelling tone, adults learning music</div>
-        </div>
+        <div class="preset-card" onclick="applyPreset('beginner',this)"><div class="preset-name">Beginner friendly</div><div class="preset-desc">Friendly, extremely simple, complete beginners</div></div>
+        <div class="preset-card" onclick="applyPreset('kids',this)"><div class="preset-name">Kids channel</div><div class="preset-desc">Playful &amp; humorous, children 8–12</div></div>
+        <div class="preset-card" onclick="applyPreset('professional',this)"><div class="preset-name">Professional</div><div class="preset-desc">Clear &amp; professional, intermediate students</div></div>
+        <div class="preset-card" onclick="applyPreset('storytelling',this)"><div class="preset-name">Storytelling</div><div class="preset-desc">Storytelling tone, adults learning music</div></div>
       </div>
     </div>
     <div class="card">
-      <div class="card-title">Save current settings as default</div>
-      <p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Your current settings will load automatically every time you open the app.</p>
+      <div class="card-title">Save defaults</div>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px;">Save current settings to load automatically on startup.</p>
       <div style="display:flex;gap:10px;">
-        <button class="btn btn-gold" onclick="saveDefaults()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          Save as default
-        </button>
+        <button class="btn btn-gold" onclick="saveDefaults()">Save as default</button>
         <button class="btn" onclick="resetDefaults()">Reset to factory</button>
       </div>
     </div>
     <div class="card">
       <div class="card-title">Channel branding</div>
       <div class="grid2">
-        <div class="field">
-          <label for="channelName">Channel name</label>
-          <input type="text" id="channelName" placeholder="e.g. MusicIsEasy" oninput="saveSetting('channelName',this.value)">
-        </div>
-        <div class="field">
-          <label for="channelTagline">Tagline</label>
-          <input type="text" id="channelTagline" placeholder="e.g. Keep it simple, keep it fun" oninput="saveSetting('channelTagline',this.value)">
-        </div>
+        <div class="field"><label for="channelName">Channel name</label><input type="text" id="channelName" placeholder="MusicIsEasy" oninput="saveSetting('channelName',this.value)"></div>
+        <div class="field"><label for="channelTagline">Tagline</label><input type="text" id="channelTagline" placeholder="Where music makes sense" oninput="saveSetting('channelTagline',this.value)"></div>
       </div>
-      <div class="field">
-        <label for="globalAvoid">Global words to always avoid</label>
-        <input type="text" id="globalAvoid" placeholder="e.g. semitone, chromatic" oninput="saveSetting('globalAvoid',this.value)">
-      </div>
+      <div class="field"><label for="globalAvoid">Always avoid</label><input type="text" id="globalAvoid" placeholder="e.g. semitone, chromatic" oninput="saveSetting('globalAvoid',this.value)"></div>
     </div>
     <div class="card">
-      <div class="card-title">Data &amp; storage</div>
-      <p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Everything is stored in your browser. Nothing is sent anywhere except directly to Google's API when you generate.</p>
-      <button class="btn" onclick="exportAllData()" style="margin-right:8px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Export all data
-      </button>
+      <div class="card-title">Data</div>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px;">All data stored locally. API keys never leave your browser except to go directly to Anthropic and Hugging Face.</p>
+      <button class="btn" onclick="exportData()" style="margin-right:8px;">Export backup</button>
       <button class="btn" onclick="clearAllData()" style="color:var(--red);border-color:rgba(224,85,85,0.3);">Clear all data</button>
     </div>
   </div>
@@ -436,83 +349,75 @@
 </div>
 
 <script>
+// ============================================================
+// STATE
+// ============================================================
 var currentScript=null;
-var currentSRTBlocks=[];
-var currentSRTResults=null;
+var currentAudioFile=null;
+var currentScenes=[];   // [{start,end,text,prompt}]
+var imageBlobs=[];
 
-// ---- STYLE MAPS ----
+// ============================================================
+// STYLE MAPS
+// ============================================================
 var artStyleMap={
-  navy:'hand-drawn sketch illustration on a deep navy blue background (#1a2a4a), using golden yellow (#f5c842) and coral red (#e8644a) as accent colours, white outlines, loose sketchy pencil or ink stroke texture, playful and educational feel',
-  chalkboard:'hand-drawn chalk illustration on a dark navy blackboard, golden yellow chalk strokes, coral red and sky blue chalk accents, glowing soft chalk texture, educational classroom feel',
-  white:'hand-drawn illustration on a clean white background, coral red (#e8644a) and golden yellow (#f5c842) ink lines, sky blue (#5b9fd4) highlights, bold friendly brush strokes, MusicIsEasy brand feel',
-  flat:'flat hand-drawn style illustration on a deep navy background, bold golden yellow shapes, coral orange accents, sky blue highlights, simple clean forms with visible hand-drawn edges',
-  notebook:'hand-drawn doodle on warm cream notebook paper, coral red and golden yellow ink, sky blue accents, loose casual sketchy style, visible paper texture'
+  navy:'hand-drawn sketch on deep navy blue (#1a2a4a) background, golden yellow (#f5c842) and coral red (#e8644a) accents, white outlines, loose sketchy ink stroke texture, educational feel',
+  chalkboard:'hand-drawn chalk illustration on dark navy blackboard, golden yellow chalk lines, coral red and sky blue chalk accents, glowing chalk texture',
+  white:'hand-drawn illustration on clean white background, coral red and golden yellow ink lines, sky blue (#5b9fd4) highlights, bold friendly brush strokes',
+  flat:'flat hand-drawn illustration on deep navy background, bold golden yellow shapes, coral orange and sky blue accents, simple clean hand-drawn edges',
+  notebook:'hand-drawn doodle on warm cream notebook paper, coral red and golden yellow ink, sky blue accents, loose casual sketchy style'
 };
 var colorMap={
-  full:'colour palette: deep navy blue (#1a2a4a) background or base, golden yellow (#f5c842) primary accent, coral red (#e8644a) secondary accent, sky blue (#5b9fd4) tertiary accent, white highlights',
-  navygold:'colour palette: deep navy blue background, golden yellow accents only, white highlights',
-  navycoral:'colour palette: deep navy blue background, coral red and orange accents only, white highlights',
-  light:'colour palette: white or cream background, coral red and golden yellow elements, sky blue accents',
-  navyblue:'colour palette: deep navy blue background, sky blue and white accents only'
+  full:'deep navy blue (#1a2a4a) background, golden yellow (#f5c842) primary accent, coral red (#e8644a) secondary, sky blue (#5b9fd4) tertiary, white highlights',
+  navygold:'deep navy blue background, golden yellow accents only, white highlights',
+  navycoral:'deep navy blue background, coral red and orange accents only, white highlights',
+  light:'white or cream background, coral red and golden yellow elements, sky blue accents',
+  navyblue:'deep navy blue background, sky blue and white accents only'
 };
 
-// The core hand-drawn image prompt prefix — locked and consistent
-var HAND_DRAWN_PREFIX='Create a simple, hand-drawn educational illustration in 16:9 widescreen format (landscape orientation). The style should look like a friendly music teacher sketching on a whiteboard or notebook. The drawing must look genuinely hand-drawn — imperfect lines, natural sketch quality, no digital polish. Keep it extremely simple: only draw what is directly needed to illustrate the concept. No clutter, no decorative extras, lots of empty space around the central element. No text or labels in the image. Music theory elements (notes, staffs, clefs, keys) must be accurate and clearly drawn. The image should be immediately understandable at a glance to a complete beginner. The composition must be centered and work well in a wide landscape frame.';
+var HAND_DRAWN_PREFIX='16:9 widescreen landscape orientation. Simple hand-drawn educational music theory illustration that looks genuinely hand-drawn with imperfect natural lines — like a music teacher sketching on a whiteboard. One single clear concept centered in the frame with lots of empty space around it. No text, no labels, no clutter whatsoever. ';
 
-function getStyleString(artKey,colorKey,extraNotes){
-  var art=artStyleMap[artKey]||artStyleMap.navy;
-  var color=colorMap[colorKey]||colorMap.full;
-  var extra=extraNotes?' Additional notes: '+extraNotes+'.':'';
-  return art+'. '+color+'.'+extra;
+var ACCURACY_RULES='CRITICAL MUSIC THEORY ACCURACY: Treble clef must curl around the second line from bottom (G line). Bass clef sits on the fourth line (F line). Notes must sit precisely on correct lines or in correct spaces. Whole note = open oval, no stem. Half note = open oval with stem. Quarter note = filled oval with stem. Middle C = open oval on ledger line below treble staff. Staff = exactly 5 horizontal parallel lines with equal spacing. These rules override all style preferences.';
+
+function getStyleStr(artKey,colorKey,extra){
+  return (artStyleMap[artKey]||artStyleMap.navy)+'. '+(colorMap[colorKey]||colorMap.full)+'.'+(extra?' '+extra+'.':'');
 }
 
-// ---- NAV ----
+function buildPrompt(sceneText,styleStr){
+  return HAND_DRAWN_PREFIX+ACCURACY_RULES+' Style: '+styleStr+' Scene being spoken: "'+sceneText+'" — illustrate the single most important visual concept from this sentence in a simple hand-drawn 16:9 landscape sketch.';
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
 function showPage(name,btn){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
   document.getElementById('page-'+name).classList.add('active');
   btn.classList.add('active');
   if(name==='history')renderHistory();
-  // Sync API key across tabs
-  var k=localStorage.getItem('mts_apikey')||'';
-  if(document.getElementById('apiKey2'))document.getElementById('apiKey2').value=k;
 }
 
-// ---- KEY ----
-function toggleKey(){
-  var k=document.getElementById('apiKey');
-  var icon=document.getElementById('eyeIcon');
-  if(k.type==='password'){k.type='text';icon.innerHTML='<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';}
-  else{k.type='password';icon.innerHTML='<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';}
+// ============================================================
+// KEYS & SETTINGS
+// ============================================================
+function toggleKey(inputId,iconId){
+  var k=document.getElementById(inputId);
+  if(k.type==='password'){k.type='text';document.getElementById(iconId).innerHTML='<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';}
+  else{k.type='password';document.getElementById(iconId).innerHTML='<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';}
 }
-function toggleKey2(){
-  var k=document.getElementById('apiKey2');
-  var icon=document.getElementById('eyeIcon2');
-  if(k.type==='password'){k.type='text';icon.innerHTML='<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';}
-  else{k.type='password';icon.innerHTML='<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';}
-}
-function saveKey(){localStorage.setItem('mts_apikey',document.getElementById('apiKey').value);}
-function saveSetting(key,val){localStorage.setItem('mts_'+key,val);showSaveIndicator();}
-function showSaveIndicator(){
-  var el=document.getElementById('saveIndicator');el.style.display='inline-flex';
-  clearTimeout(window._st);window._st=setTimeout(function(){el.style.display='none';},2000);
-}
+function saveKey(type,val){localStorage.setItem('mts_key_'+type,val);}
+function saveSetting(k,v){localStorage.setItem('mts_'+k,v);showSave();}
+function showSave(){var el=document.getElementById('saveIndicator');el.style.display='inline-flex';clearTimeout(window._st);window._st=setTimeout(function(){el.style.display='none';},2000);}
 
 function loadSaved(){
-  var key=localStorage.getItem('mts_apikey');
-  if(key){document.getElementById('apiKey').value=key;if(document.getElementById('apiKey2'))document.getElementById('apiKey2').value=key;}
+  var ck=localStorage.getItem('mts_key_claude');if(ck)document.getElementById('claudeKey').value=ck;
+  var hk=localStorage.getItem('mts_key_hf');if(hk)document.getElementById('hfKey').value=hk;
   ['tone','audience','length','complexity'].forEach(function(f){var v=localStorage.getItem('mts_def_'+f);if(v&&document.getElementById(f))document.getElementById(f).value=v;});
   ['avoid','channelName','channelTagline','globalAvoid'].forEach(function(f){var v=localStorage.getItem('mts_'+f);if(v&&document.getElementById(f))document.getElementById(f).value=v;});
 }
-
-function saveDefaults(){
-  ['tone','audience','length','complexity','avoid'].forEach(function(f){localStorage.setItem('mts_def_'+f,document.getElementById(f).value);});
-  showSaveIndicator();alert('Default settings saved!');
-}
-function resetDefaults(){
-  ['tone','audience','length','complexity','avoid'].forEach(function(f){localStorage.removeItem('mts_def_'+f);});
-  alert('Settings reset.');
-}
+function saveDefaults(){['tone','audience','length','complexity','avoid'].forEach(function(f){localStorage.setItem('mts_def_'+f,document.getElementById(f).value);});showSave();alert('Defaults saved!');}
+function resetDefaults(){['tone','audience','length','complexity','avoid'].forEach(function(f){localStorage.removeItem('mts_def_'+f);});alert('Reset.');}
 function applyPreset(name,el){
   var p={
     beginner:{tone:'friendly and conversational',audience:'complete beginners with no music knowledge',complexity:'extremely simple, no jargon, plain everyday language'},
@@ -527,30 +432,91 @@ function applyPreset(name,el){
   showPage('generate',document.querySelectorAll('.tab')[0]);
 }
 
+// ============================================================
+// STATUS / PROGRESS
+// ============================================================
 function setStatus(id,msg,type){var el=document.getElementById(id);el.textContent=msg;el.className='status show '+type;}
-function hideStatus(id){if(document.getElementById(id))document.getElementById(id).className='status';}
-function setProgress(pct,label,fillId,labelId){
-  document.getElementById(fillId||'progressFill').style.width=pct+'%';
-  document.getElementById(labelId||'progressLabel').textContent=label;
+function hideStatus(id){document.getElementById(id).className='status';}
+function setProgress(pct,label){
+  document.getElementById('produceFill').style.width=pct+'%';
+  document.getElementById('produceLabel').textContent=label;
+}
+function setGenProgress(pct,label){
+  document.getElementById('genFill').style.width=pct+'%';
+  document.getElementById('genLabel').textContent=label;
 }
 
-async function callGemini(key,prompt){
-  var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+// ============================================================
+// CLAUDE API
+// ============================================================
+async function callClaude(prompt,maxTokens){
+  var key=document.getElementById('claudeKey').value.trim();
+  if(!key)throw new Error('Please enter your Anthropic API key.');
+  var r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens||2000,messages:[{role:'user',content:prompt}]})
   });
-  if(!r.ok){var e=await r.json();throw new Error(e.error&&e.error.message?e.error.message:'API error '+r.status);}
-  var d=await r.json();
-  return d.candidates[0].content.parts[0].text;
+  if(!r.ok){var e=await r.json();throw new Error(e.error&&e.error.message?e.error.message:'Claude API error '+r.status);}
+  var d=await r.json();return d.content[0].text;
 }
 
-// ===================== GENERATE SCRIPT =====================
-async function generateScript(){
-  var key=document.getElementById('apiKey').value.trim();
-  var topic=document.getElementById('topic').value.trim();
-  if(!key){setStatus('statusMsg','Please enter your Gemini API key.','error');return;}
-  if(!topic){setStatus('statusMsg','Please enter a video topic.','error');return;}
+// ============================================================
+// HUGGING FACE — WHISPER (TRANSCRIPTION)
+// ============================================================
+async function transcribeAudio(audioFile){
+  var key=document.getElementById('hfKey').value.trim();
+  if(!key)throw new Error('Please enter your Hugging Face API key.');
+  var formData=new FormData();
+  formData.append('file',audioFile);
+  // Use whisper-large-v3 for best accuracy
+  var r=await fetch('https://api-inference.huggingface.co/models/openai/whisper-large-v3',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+key},
+    body:formData
+  });
+  if(!r.ok){
+    var txt=await r.text();
+    if(r.status===503){
+      // Model loading — wait and retry once
+      await sleep(25000);
+      r=await fetch('https://api-inference.huggingface.co/models/openai/whisper-large-v3',{method:'POST',headers:{'Authorization':'Bearer '+key},body:formData});
+      if(!r.ok)throw new Error('Whisper model still loading. Please try again in 1 minute.');
+    } else {
+      throw new Error('Transcription failed: '+r.status+'. '+txt.slice(0,100));
+    }
+  }
+  var d=await r.json();
+  // Whisper returns {text: "..."} — we need the full text then split by Claude
+  if(d.text)return d.text;
+  if(d.error)throw new Error('Whisper error: '+d.error);
+  throw new Error('Unexpected transcription response.');
+}
 
+// ============================================================
+// HUGGING FACE — FLUX (IMAGE GENERATION)
+// ============================================================
+async function generateImage(prompt){
+  var key=document.getElementById('hfKey').value.trim();
+  var r=await fetch('https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
+    body:JSON.stringify({inputs:prompt,parameters:{width:1280,height:720,num_inference_steps:4,guidance_scale:3.5}})
+  });
+  if(!r.ok){
+    var txt=await r.text();
+    if(r.status===503)throw new Error('model_loading');
+    throw new Error('Image generation failed ('+r.status+'): '+txt.slice(0,100));
+  }
+  return await r.blob();
+}
+
+// ============================================================
+// GENERATE SCRIPT
+// ============================================================
+async function generateScript(){
+  var topic=document.getElementById('topic').value.trim();
+  if(!topic){setStatus('genStatus','Please enter a video topic.','error');return;}
   var tone=document.getElementById('tone').value;
   var audience=document.getElementById('audience').value;
   var length=document.getElementById('length').value;
@@ -559,372 +525,409 @@ async function generateScript(){
   var globalAvoid=localStorage.getItem('mts_globalAvoid')||'';
   var channelName=localStorage.getItem('mts_channelName')||'MusicIsEasy';
   var channelTagline=localStorage.getItem('mts_channelTagline')||'';
-
   var allAvoid=[avoid,globalAvoid].filter(Boolean).join(', ');
-  var avoidClause=allAvoid?' Never use these words or phrases: '+allAvoid+'.':'';
-  var taglineClause=channelTagline?' The channel tagline is "'+channelTagline+'".':'';
+  var avoidClause=allAvoid?' Never use these words: '+allAvoid+'.':'';
+  var tagClause=channelTagline?' Tagline: "'+channelTagline+'".':'';
 
   var btn=document.getElementById('generateBtn');
   btn.disabled=true;
-  btn.innerHTML='<svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Generating script...';
+  btn.innerHTML='<svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Writing...';
   document.getElementById('scriptOutput').innerHTML='';
-  hideStatus('statusMsg');
-  document.getElementById('progressWrap').className='progress-wrap show';
-  setProgress(30,'Writing your script...');
+  hideStatus('genStatus');
+  document.getElementById('genProgress').className='progress-wrap show';
+  setGenProgress(30,'Writing your script...');
 
-  var scriptPrompt='You are writing a spoken YouTube video script about music theory for '+audience+'. Channel: "'+channelName+'".'+taglineClause+' Topic: '+topic+'. Tone: '+tone+'. Length: '+length+'. Language: '+complexity+'.'+avoidClause+'\n\nIMPORTANT RULES:\n- Write ONLY the spoken narration as one continuous flowing script.\n- Do NOT split into scenes, do NOT add scene numbers, do NOT add headings or labels.\n- Write in natural spoken paragraphs, as if talking directly to the viewer.\n- The FIRST paragraph must warmly welcome viewers to "'+channelName+'" and introduce what this video covers.\n- The LAST paragraph must thank viewers for watching, ask them to like and subscribe to "'+channelName+'", and tease the next video.\n- Keep sentences short and conversational — this will be read aloud.\n- No bullet points, no numbered lists, no markdown formatting.\n- Just write the script as natural spoken words from start to finish.';
+  var prompt='Write a spoken YouTube video script about music theory for '+audience+'. Channel: "'+channelName+'".'+tagClause+' Topic: '+topic+'. Tone: '+tone+'. Length: '+length+'. Language complexity: '+complexity+'.'+avoidClause+'\n\nSTRICT RULES:\n- Write ONLY the spoken narration as one continuous flowing script.\n- Natural spoken paragraphs — NO scene numbers, NO headings, NO bullet points, NO markdown.\n- Opening paragraph: warmly welcome viewers to "'+channelName+'" and introduce the topic.\n- Closing paragraph: thank viewers for watching, ask them to like and subscribe to "'+channelName+'", tease the next video.\n- Short conversational sentences — this will be read aloud.\n- Plain flowing text only from start to finish.';
 
   try{
-    var scriptText=await callGemini(key,scriptPrompt);
-    currentScript={topic:topic,script:scriptText,tone:tone,date:new Date().toISOString()};
+    var text=await callClaude(prompt,3000);
+    currentScript={topic:topic,script:text,tone:tone,date:new Date().toISOString()};
     saveToHistory(currentScript);
-    setProgress(100,'Done!');
-    setTimeout(function(){document.getElementById('progressWrap').className='progress-wrap';},600);
-    setStatus('statusMsg','Script generated! Read it through, record your voiceover, then head to the SRT tab.','success');
-    renderScriptOutput(scriptText,topic);
+    setGenProgress(100,'Done!');
+    setTimeout(function(){document.getElementById('genProgress').className='progress-wrap';},600);
+    setStatus('genStatus','Script ready! Now go record your voiceover, then come back to the Produce Video tab.','success');
+    renderScript(text,topic);
   }catch(err){
-    document.getElementById('progressWrap').className='progress-wrap';
-    setStatus('statusMsg','Error: '+err.message,'error');
+    document.getElementById('genProgress').className='progress-wrap';
+    setStatus('genStatus','Error: '+err.message,'error');
   }
-
   btn.disabled=false;
   btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Generate Full Script';
 }
 
-function renderScriptOutput(text,topic){
+function renderScript(text,topic){
   var paras=text.split(/\n+/).filter(function(p){return p.trim().length>0;});
   var html='<div style="margin-top:28px;">'
-    +'<div class="results-header">'
-    +'<div><div class="results-title">'+escHtml(topic)+'</div><div class="results-sub">Full script — read aloud and record your voiceover</div></div>'
-    +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
-    +'<button class="btn btn-gold" onclick="openScriptModal()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Read Script</button>'
-    +'<button class="btn" onclick="copyScript()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy script</button>'
-    +'<button class="btn" onclick="exportScriptTxt()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export TXT</button>'
-    +'</div></div>';
-
-  html+='<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:28px;margin-bottom:16px;">';
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">'
+    +'<div style="font-family:\'Playfair Display\',serif;font-size:20px;">'+escHtml(topic)+'</div>'
+    +'<div style="display:flex;gap:8px;">'
+    +'<button class="btn btn-gold" onclick="openModal()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Read Script</button>'
+    +'<button class="btn" onclick="copyScript()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button>'
+    +'<button class="btn" onclick="exportScript()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export</button>'
+    +'</div></div>'
+    +'<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:28px;margin-bottom:14px;">';
   paras.forEach(function(p,i){
-    var isFirst=i===0,isLast=i===paras.length-1;
-    var border=isFirst?'border-left:3px solid var(--gold);padding-left:14px;':isLast?'border-left:3px solid var(--coral);padding-left:14px;':'';
-    html+='<p style="font-size:15px;line-height:1.9;color:var(--text);margin-bottom:20px;'+border+'">'+escHtml(p)+'</p>';
+    var first=i===0,last=i===paras.length-1;
+    var bl=first?'border-left:3px solid var(--gold);padding-left:14px;':last?'border-left:3px solid var(--coral);padding-left:14px;':'';
+    html+='<p style="font-size:15px;line-height:1.9;color:var(--text);margin-bottom:18px;'+bl+'">'+escHtml(p)+'</p>';
   });
   html+='</div>';
-
-  // Next step prompt
-  html+='<div style="background:var(--gold-dim);border:0.5px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;">'
-    +'<div style="font-size:13px;color:var(--gold2);font-weight:500;margin-bottom:4px;">Next step →</div>'
-    +'<div style="font-size:13px;color:var(--text2);">Record your voiceover using this script. Then upload the audio to <strong style="color:var(--text);">TurboScribe</strong>, download the SRT file, and head to the <strong style="color:var(--text);">SRT → Image Prompts</strong> tab.</div>'
+  html+='<div style="background:var(--gold-dim);border:0.5px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:14px 16px;">'
+    +'<div style="font-size:13px;color:var(--gold2);font-weight:500;margin-bottom:3px;">Next step →</div>'
+    +'<div style="font-size:13px;color:var(--text2);">Record your voiceover using this script, then go to the <strong style="color:var(--text);">Produce Video</strong> tab and upload your audio file.</div>'
     +'</div>';
-
-  // Script modal
+  // Modal
   html+='<div id="scriptModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.94);z-index:999;overflow-y:auto;">'
-    +'<div style="max-width:780px;margin:0 auto;padding:48px 32px 80px;">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;position:sticky;top:0;background:rgba(0,0,0,0.94);padding:16px 0;z-index:10;border-bottom:0.5px solid rgba(255,255,255,0.08);">'
-    +'<div><div style="font-family:\'Playfair Display\',serif;font-size:20px;color:#f5c842;">'+escHtml(topic)+'</div>'
-    +'<div style="font-size:12px;color:#6a6050;margin-top:2px;">MusicIsEasy — Read aloud for voiceover</div></div>'
+    +'<div style="max-width:760px;margin:0 auto;padding:48px 32px 80px;">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;position:sticky;top:0;background:rgba(0,0,0,0.94);padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.08);z-index:10;">'
+    +'<div style="font-family:\'Playfair Display\',serif;font-size:19px;color:var(--gold2);">'+escHtml(topic)+'</div>'
     +'<div style="display:flex;gap:8px;">'
-    +'<button class="btn" id="copyScriptModalBtn" onclick="copyScript()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button>'
-    +'<button class="btn" onclick="closeScriptModal()" style="color:#e8644a;border-color:rgba(232,100,74,0.3);">Close</button>'
+    +'<button class="btn" onclick="copyScript()">Copy</button>'
+    +'<button class="btn" onclick="closeModal()" style="color:var(--coral);border-color:rgba(232,100,74,0.3);">Close</button>'
     +'</div></div>'
-    +'<div style="font-size:24px;line-height:2.1;color:#f0ece4;font-family:\'DM Sans\',sans-serif;">'
+    +'<div style="font-size:24px;line-height:2.1;color:var(--text);">'
     +paras.map(function(p){return'<p style="margin-bottom:1.8em;">'+escHtml(p)+'</p>';}).join('')
     +'</div></div></div>';
-
   html+='</div>';
   document.getElementById('scriptOutput').innerHTML=html;
 }
 
-function openScriptModal(){document.getElementById('scriptModal').style.display='block';document.body.style.overflow='hidden';}
-function closeScriptModal(){document.getElementById('scriptModal').style.display='none';document.body.style.overflow='';}
-
-function copyScript(){
-  if(!currentScript)return;
-  navigator.clipboard.writeText(currentScript.script).then(function(){
-    setStatus('statusMsg','Script copied to clipboard!','success');
-  });
-}
-
-function exportScriptTxt(){
+function openModal(){document.getElementById('scriptModal').style.display='block';document.body.style.overflow='hidden';}
+function closeModal(){document.getElementById('scriptModal').style.display='none';document.body.style.overflow='';}
+function copyScript(){if(!currentScript)return;navigator.clipboard.writeText(currentScript.script).then(function(){setStatus('genStatus','Copied!','success');});}
+function exportScript(){
   if(!currentScript)return;
   var blob=new Blob([currentScript.topic+'\n\n'+currentScript.script],{type:'text/plain'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download=currentScript.topic.replace(/[^a-z0-9]/gi,'_').toLowerCase()+'_script.txt';a.click();
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=currentScript.topic.replace(/[^a-z0-9]/gi,'_').toLowerCase()+'_script.txt';a.click();
 }
 
-// ===================== SRT PARSING =====================
-function parseSRT(text){
-  var blocks=[];
-  var lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
-  var i=0;
-  while(i<lines.length){
-    var line=lines[i].trim();
-    if(/^\d+$/.test(line)){
-      var num=parseInt(line);i++;
-      if(i>=lines.length)break;
-      var tl=lines[i].trim();
-      var tm=tl.match(/(\d{2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[,.](\d{3})/);
-      if(tm){
-        var start=+tm[1]*3600+ +tm[2]*60+ +tm[3]+ +tm[4]/1000;
-        var end=+tm[5]*3600+ +tm[6]*60+ +tm[7]+ +tm[8]/1000;
-        i++;var tlines=[];
-        while(i<lines.length&&lines[i].trim()!==''){tlines.push(lines[i].trim());i++;}
-        if(tlines.length>0)blocks.push({num:num,start:start,end:end,text:tlines.join(' ')});
-      }
-    }
-    i++;
-  }
-  return blocks;
-}
+// ============================================================
+// AUDIO UPLOAD
+// ============================================================
+function onDragAudio(e){e.preventDefault();document.getElementById('audioZone').classList.add('dragover');}
+function offDragAudio(){document.getElementById('audioZone').classList.remove('dragover');}
+function onDropAudio(e){e.preventDefault();offDragAudio();handleAudio(e.dataTransfer.files);}
 
-function cleanAndMergeSRT(blocks){
-  // Step 1 — Strip TurboScribe watermark from any block
-  var watermarkRe=/\(Transcribed by TurboScribe[^)]*\)\s*/gi;
-  blocks=blocks.map(function(b){
-    return {num:b.num,start:b.start,end:b.end,text:b.text.replace(watermarkRe,'').trim()};
-  }).filter(function(b){return b.text.length>0;});
-
-  // Step 2 — Merge blocks that are mid-sentence into the next block
-  // A block is mid-sentence if its text does NOT end with . ? ! or ...
-  var merged=[];
-  var i=0;
-  while(i<blocks.length){
-    var cur=blocks[i];
-    var text=cur.text;
-    var start=cur.start;
-    var end=cur.end;
-
-    // Keep merging forward while this block ends mid-sentence
-    while(i+1<blocks.length && !endsWithPunctuation(text)){
-      i++;
-      text=text+' '+blocks[i].text;
-      end=blocks[i].end;
-    }
-
-    merged.push({num:merged.length+1,start:start,end:end,text:text.trim()});
-    i++;
-  }
-
-  return merged;
-}
-
-function endsWithPunctuation(text){
-  // Returns true if text ends with a sentence-ending punctuation mark
-  var t=text.trim();
-  return /[.?!]$/.test(t)||/\.\.\.$/.test(t);
-}
-
-function fmtTime(s){var m=Math.floor(s/60),sec=Math.floor(s%60);return m+':'+(sec<10?'0':'')+sec;}
-
-// ===================== SRT UPLOAD =====================
-function onDragSrt(e){e.preventDefault();document.getElementById('srtDrop').classList.add('dragover');}
-function offDragSrt(){document.getElementById('srtDrop').classList.remove('dragover');}
-function onDropSrt(e){e.preventDefault();offDragSrt();loadSRT(e.dataTransfer.files);}
-
-function loadSRT(files){
+function handleAudio(files){
   if(!files||files.length===0)return;
   var file=files[0];
-  var reader=new FileReader();
-  reader.onload=function(e){
-    var rawBlocks=parseSRT(e.target.result);
-    if(rawBlocks.length===0){setStatus('srtStatus','Could not read SRT file. Make sure it is a valid SRT from TurboScribe.','error');return;}
-
-    // Clean watermark and merge split sentences
-    var blocks=cleanAndMergeSRT(rawBlocks);
-    var mergedCount=rawBlocks.length-blocks.length;
-    currentSRTBlocks=blocks;
-
-    document.getElementById('srtFileInfo').style.display='block';
-    document.getElementById('srtFileInfo').innerHTML='<div style="background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:10px 14px;">'
-      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
-      +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--green);flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>'
-      +'<span style="font-size:13px;color:var(--text2);">'+file.name+'</span>'
-      +'<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:var(--green-bg);color:var(--green);border:0.5px solid rgba(76,175,130,0.2);">'+blocks.length+' scenes</span>'
-      +'</div>'
-      +'<div style="font-size:12px;color:var(--text3);">'
-      +(mergedCount>0?'✓ Stripped TurboScribe watermark &nbsp;·&nbsp; Merged '+mergedCount+' split blocks into complete sentences':'✓ All blocks are complete sentences')
-      +'</div>'
-      +'</div>';
-
-    // Preview first 6 merged blocks
-    var preview=document.getElementById('srtBlockPreview');
-    preview.innerHTML=blocks.slice(0,6).map(function(b){
-      return'<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);">'
-        +'<span style="font-size:11px;color:var(--gold);white-space:nowrap;min-width:70px;">'+fmtTime(b.start)+' → '+fmtTime(b.end)+'</span>'
-        +'<span style="font-size:13px;color:var(--text2);">'+escHtml(b.text)+'</span>'
-        +'</div>';
-    }).join('')+(blocks.length>6?'<div style="font-size:12px;color:var(--text3);padding:8px 0;">...and '+(blocks.length-6)+' more scenes</div>':'');
-
-    hideStatus('srtStatus');
-    document.getElementById('srtPromptsSection').style.display='block';
-  };
-  reader.readAsText(file);
+  if(!file.type.startsWith('audio/')&&!file.name.match(/\.(mp3|wav|m4a|ogg|webm)$/i)){
+    setStatus('produceStatus','Please upload an audio file (MP3, WAV, M4A).','error');return;
+  }
+  currentAudioFile=file;
+  var sizeMB=(file.size/1024/1024).toFixed(1);
+  document.getElementById('audioInfo').style.display='block';
+  document.getElementById('audioInfo').innerHTML='<div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:10px 14px;">'
+    +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>'
+    +'<span style="font-size:13px;color:var(--text2);">'+escHtml(file.name)+'</span>'
+    +'<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:var(--green-bg);color:var(--green);border:0.5px solid rgba(76,175,130,0.2);">'+sizeMB+' MB</span>'
+    +'</div>';
+  hideStatus('produceStatus');
+  document.getElementById('produceBtn').style.display='flex';
 }
 
-// ===================== GENERATE FROM SRT =====================
-async function generateFromSRT(){
-  var key=(document.getElementById('apiKey2').value||document.getElementById('apiKey').value).trim();
-  if(!key){setStatus('srtStatus','Please enter your Gemini API key above.','error');return;}
-  if(currentSRTBlocks.length===0){setStatus('srtStatus','Please upload an SRT file first.','error');return;}
+// ============================================================
+// MAIN PRODUCTION PIPELINE
+// ============================================================
+async function produceVideo(){
+  if(!currentAudioFile){setStatus('produceStatus','Please upload your voiceover audio first.','error');return;}
+  if(!currentScript){setStatus('produceStatus','Please generate a script first in Tab 1.','error');return;}
 
-  var artKey=document.getElementById('srtArtStyle').value;
-  var colorKey=document.getElementById('srtColorScheme').value;
-  var styleNotes=document.getElementById('srtStyleNotes').value.trim();
-  var styleStr=getStyleString(artKey,colorKey,styleNotes);
+  var claudeKey=document.getElementById('claudeKey').value.trim();
+  var hfKey=document.getElementById('hfKey').value.trim();
+  if(!claudeKey){setStatus('produceStatus','Please enter your Anthropic API key in Tab 1.','error');return;}
+  if(!hfKey){setStatus('produceStatus','Please enter your Hugging Face API key in Tab 1.','error');return;}
+
+  var artKey=document.getElementById('artStyle').value;
+  var colorKey=document.getElementById('colorScheme').value;
+  var styleNotes=document.getElementById('styleNotes').value.trim();
+  var styleStr=getStyleStr(artKey,colorKey,styleNotes);
   var channelName=localStorage.getItem('mts_channelName')||'MusicIsEasy';
 
-  var btn=document.getElementById('srtGenerateBtn');
+  var btn=document.getElementById('produceBtn');
   btn.disabled=true;
-  btn.innerHTML='<svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Generating prompts...';
-  document.getElementById('srtOutput').innerHTML='';
-  hideStatus('srtStatus');
-  document.getElementById('srtProgressWrap').className='progress-wrap show';
-  setProgress(10,'Building image prompts from '+currentSRTBlocks.length+' SRT blocks...','srtProgressFill','srtProgressLabel');
-
-  // Build the prompt for Gemini — one image prompt per SRT block
-  var blocksText=currentSRTBlocks.map(function(b,i){
-    return'Block '+(i+1)+' ['+fmtTime(b.start)+'–'+fmtTime(b.end)+']: '+b.text;
-  }).join('\n');
-
-  var promptInstruction=HAND_DRAWN_PREFIX+'\n\nChannel: "'+channelName+'". Style for all images: '+styleStr+'\n\nFor each SRT block below, generate exactly one image generation prompt. Each prompt must:\n1. Directly and specifically illustrate what is being spoken about in that block\n2. Begin with: "16:9 widescreen hand-drawn educational music theory sketch:"\n3. Describe only the key visual element needed — one main thing, simply drawn, centered in a wide landscape frame\n4. Specify the style: '+styleStr+'\n5. Be under 50 words\n6. NOT include any text or labels in the image\n7. Be accurate to music theory (correct note positions, correct clef shapes, etc.)\n8. Always specify landscape orientation and 16:9 aspect ratio\n\nOutput ONLY numbered prompts, one per block:\n1. [prompt]\n2. [prompt]\netc.\n\nSRT blocks:\n'+blocksText;
+  btn.innerHTML='<svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Working...';
+  document.getElementById('produceOutput').innerHTML='';
+  hideStatus('produceStatus');
+  document.getElementById('produceProgress').className='progress-wrap show';
+  imageBlobs=[];
 
   try{
-    setProgress(40,'Sending to Gemini...','srtProgressFill','srtProgressLabel');
-    var raw=await callGemini(key,promptInstruction);
-    setProgress(85,'Processing prompts...','srtProgressFill','srtProgressLabel');
+    // ---- STEP 1: TRANSCRIBE AUDIO ----
+    setProgress(5,'Step 1 of 3 — Transcribing audio with Whisper (this may take a few minutes, you can leave this running)...');
+    var transcription=await transcribeAudio(currentAudioFile);
 
-    var lines=raw.split('\n').filter(function(l){return /^\d+\./.test(l.trim());});
-    var prompts=lines.map(function(l){return l.replace(/^\d+\.\s*/,'').trim();});
-    while(prompts.length<currentSRTBlocks.length){
-      prompts.push('Hand-drawn educational music theory sketch: simple music concept illustration. '+styleStr);
+    // ---- STEP 2: CROSS-REFERENCE & DIVIDE INTO SCENES ----
+    setProgress(35,'Step 2 of 3 — Cross-referencing transcription with script and dividing into scenes...');
+
+    var scenePrompt='You have a generated script and a Whisper transcription of the recorded voiceover. Your job is to divide the transcription into natural scenes for a music theory YouTube video.\n\nGENERATED SCRIPT:\n'+currentScript.script+'\n\nWHISPER TRANSCRIPTION:\n'+transcription+'\n\nINSTRUCTIONS:\n- Divide the transcription into natural scenes at sentence boundaries\n- Each scene should be 1-2 complete sentences\n- Aim for scenes that are 4-10 seconds each when spoken\n- Cross-reference with the script to ensure accuracy and correct any transcription errors\n- Output ONLY a JSON array like this, no other text:\n[{"text":"scene text here"},{"text":"next scene text here"}]\n- Minimum 15 scenes, maximum 50 scenes depending on audio length\n- Do not include any markdown, code fences, or explanation — pure JSON array only';
+
+    var scenesRaw=await callClaude(scenePrompt,4000);
+    // Strip any markdown fences just in case
+    scenesRaw=scenesRaw.replace(/```json|```/g,'').trim();
+    var scenesData=JSON.parse(scenesRaw);
+    if(!Array.isArray(scenesData)||scenesData.length===0)throw new Error('Could not parse scenes from transcription.');
+    currentScenes=scenesData.map(function(s,i){return{text:s.text,prompt:'',imgBlob:null,approved:false};});
+
+    // ---- STEP 3: GENERATE IMAGE PROMPTS ----
+    setProgress(50,'Step 2b — Generating image prompts for '+currentScenes.length+' scenes...');
+
+    var promptsText=currentScenes.map(function(s,i){return'Scene '+(i+1)+': '+s.text;}).join('\n');
+    var promptInstr=HAND_DRAWN_PREFIX+ACCURACY_RULES+'\n\nChannel: "'+channelName+'". Style: '+styleStr+'\n\nFor each scene generate exactly one image prompt. Rules:\n1. Start with: "16:9 widescreen hand-drawn music theory sketch:"\n2. One specific visual concept directly illustrating what is spoken\n3. Apply accuracy rules above strictly for any music notation\n4. Style: '+styleStr+'\n5. Under 55 words\n6. No text or labels in the image\n7. Landscape 16:9 widescreen always\n\nOutput ONLY numbered prompts:\n1. [prompt]\n2. [prompt]\n\nScenes:\n'+promptsText;
+
+    var promptsRaw=await callClaude(promptInstr,5000);
+    var promptLines=promptsRaw.split('\n').filter(function(l){return /^\d+\./.test(l.trim());});
+    var prompts=promptLines.map(function(l){return l.replace(/^\d+\.\s*/,'').trim();});
+    while(prompts.length<currentScenes.length)prompts.push('16:9 widescreen hand-drawn music theory educational sketch: simple musical concept illustration. '+styleStr);
+    currentScenes.forEach(function(s,i){s.prompt=prompts[i]||'';});
+
+    // ---- RENDER REVIEW GRID (before images generate) ----
+    setProgress(60,'Step 3 of 3 — Generating '+currentScenes.length+' images (you can leave this running)...');
+    renderReviewGrid();
+
+    // ---- STEP 4: GENERATE IMAGES ONE BY ONE ----
+    var successCount=0;
+    var failCount=0;
+
+    for(var i=0;i<currentScenes.length;i++){
+      var pct=60+Math.floor((i/currentScenes.length)*35);
+      setProgress(pct,'Generating image '+(i+1)+' of '+currentScenes.length+'...');
+      updateCardStatus(i,'generating');
+
+      try{
+        if(i>0)await sleep(1000);
+        var blob=await generateImage(currentScenes[i].prompt);
+        currentScenes[i].imgBlob=blob;
+        imageBlobs[i]=blob;
+        var url=URL.createObjectURL(blob);
+        updateCardImage(i,url);
+        successCount++;
+      }catch(err){
+        if(err.message==='model_loading'){
+          updateCardStatus(i,'waiting');
+          await sleep(30000);
+          // retry
+          try{
+            var blob2=await generateImage(currentScenes[i].prompt);
+            currentScenes[i].imgBlob=blob2;
+            imageBlobs[i]=blob2;
+            updateCardImage(i,URL.createObjectURL(blob2));
+            successCount++;
+          }catch(e2){
+            updateCardStatus(i,'failed');
+            failCount++;
+          }
+        } else {
+          updateCardStatus(i,'failed');
+          failCount++;
+        }
+      }
     }
 
-    currentSRTResults={blocks:currentSRTBlocks,prompts:prompts,artKey:artKey,colorKey:colorKey,date:new Date().toISOString()};
-    setProgress(100,'Done!','srtProgressFill','srtProgressLabel');
-    setTimeout(function(){document.getElementById('srtProgressWrap').className='progress-wrap';},600);
-    renderSRTOutput(currentSRTResults);
+    setProgress(100,'Done! '+successCount+' images generated'+(failCount>0?', '+failCount+' failed — click Retry on those':'')+'.');
+    setTimeout(function(){document.getElementById('produceProgress').className='progress-wrap';},1000);
+
+    var msg=successCount+' of '+currentScenes.length+' images generated. Review them below — click Regenerate on any that look wrong, then Download All + SRT when ready.';
+    setStatus('produceStatus',msg,'success');
+    showDownloadBar();
 
   }catch(err){
-    document.getElementById('srtProgressWrap').className='progress-wrap';
-    setStatus('srtStatus','Error: '+err.message,'error');
+    document.getElementById('produceProgress').className='progress-wrap';
+    setStatus('produceStatus','Error: '+err.message,'error');
   }
 
   btn.disabled=false;
-  btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Generate Image Prompts from SRT';
+  btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Transcribe, Sync &amp; Generate All Images';
 }
 
-function renderSRTOutput(data){
-  var html='<div style="margin-top:24px;">'
-    +'<div class="results-header">'
-    +'<div><div class="results-title">Image Prompts</div>'
-    +'<div class="results-sub">'+data.blocks.length+' prompts — one per SRT block — perfectly synced to your voice</div></div>'
-    +'<div style="display:flex;gap:8px;">'
-    +'<button class="btn" onclick="copyAllSRTPrompts()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy all prompts</button>'
-    +'<button class="btn" onclick="exportSRTPrompts()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export TXT</button>'
-    +'</div></div>';
+// ============================================================
+// REVIEW GRID RENDERING
+// ============================================================
+function renderReviewGrid(){
+  var html='<div id="reviewSection" style="margin-top:24px;">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--border);flex-wrap:wrap;gap:10px;">'
+    +'<div><div style="font-family:\'Playfair Display\',serif;font-size:20px;">Review Images</div>'
+    +'<div style="font-size:13px;color:var(--text3);margin-top:2px;">Images are generating below — click <strong style="color:var(--gold);">Regenerate</strong> on any that look inaccurate</div></div>'
+    +'<div id="downloadBar"></div>'
+    +'</div>'
+    +'<div class="img-grid" id="imgGrid">';
 
-  // Naming reminder
-  html+='<div style="background:var(--gold-dim);border:0.5px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;font-size:13px;color:var(--text2);">'
-    +'<strong style="color:var(--gold2);">Reminder:</strong> Save your generated images as <code style="color:var(--gold);background:var(--bg3);padding:1px 6px;border-radius:4px;">scene_01.jpg</code>, <code style="color:var(--gold);background:var(--bg3);padding:1px 6px;border-radius:4px;">scene_02.jpg</code> etc. in the same order as the prompts below.'
-    +'</div>';
-
-  data.blocks.forEach(function(b,i){
-    var p=data.prompts[i]||'';
-    html+='<div class="scene-card">'
-      +'<div class="scene-header">'
-      +'<div style="display:flex;align-items:center;gap:8px;">'
-      +'<span class="scene-num">Scene '+(i+1)+'</span>'
-      +'<span style="font-size:11px;color:var(--text3);">'+fmtTime(b.start)+' → '+fmtTime(b.end)+'</span>'
+  currentScenes.forEach(function(s,i){
+    html+='<div class="img-card" id="card_'+i+'">'
+      +'<div class="img-placeholder" id="ph_'+i+'">'
+      +'<svg class="pulsing spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>'
+      +'<span style="font-size:10px;color:var(--text3);">Generating...</span>'
       +'</div>'
-      +'<button class="btn" style="padding:5px 12px;font-size:12px;" onclick="copyText(\''+escJs(p)+'\',this)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button>'
-      +'</div>'
-      +'<div class="scene-text">'+escHtml(b.text)+'</div>'
-      +'<div class="scene-prompt-label">Image prompt (save image as scene_'+(i<9?'0':'')+(i+1)+'.jpg)</div>'
-      +'<div class="scene-prompt">'+escHtml(p)+'</div>'
-      +'</div>';
+      +'<img class="img-el" id="img_'+i+'" alt="Scene '+(i+1)+'">'
+      +'<div class="img-footer">'
+      +'<div class="img-scene-label">Scene '+(i+1)+'</div>'
+      +'<div class="img-spoken" id="spoken_'+i+'">'+escHtml(s.text)+'</div>'
+      +'<div class="img-actions">'
+      +'<button class="img-btn regen" id="regenBtn_'+i+'" onclick="regenImage('+i+')" disabled>↺ Regenerate</button>'
+      +'<button class="img-btn dl" id="dlBtn_'+i+'" onclick="dlImage('+i+')" disabled>⬇ Save</button>'
+      +'</div></div></div>';
   });
 
-  html+='</div>';
-  document.getElementById('srtOutput').innerHTML=html;
+  html+='</div></div>';
+  document.getElementById('produceOutput').innerHTML=html;
 }
 
-function copyAllSRTPrompts(){
-  if(!currentSRTResults)return;
-  var text=currentSRTResults.prompts.map(function(p,i){return'scene_'+(i<9?'0':'')+(i+1)+' ['+fmtTime(currentSRTResults.blocks[i].start)+'–'+fmtTime(currentSRTResults.blocks[i].end)+']:\n'+p;}).join('\n\n');
-  navigator.clipboard.writeText(text).then(function(){alert('All prompts copied!');});
-}
-
-function exportSRTPrompts(){
-  if(!currentSRTResults)return;
-  var lines=['MusicIsEasy — Image Prompts from SRT','Generated: '+new Date().toLocaleDateString(),'Total scenes: '+currentSRTResults.blocks.length,''];
-  currentSRTResults.blocks.forEach(function(b,i){
-    lines.push('SCENE '+(i+1)+' ['+fmtTime(b.start)+'–'+fmtTime(b.end)+'] — save as scene_'+(i<9?'0':'')+(i+1)+'.jpg');
-    lines.push('Spoken: '+b.text);
-    lines.push('Prompt: '+(currentSRTResults.prompts[i]||''));
-    lines.push('');
-  });
-  var blob=new Blob([lines.join('\n')],{type:'text/plain'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='musiceasyeasy_image_prompts.txt';a.click();
-}
-
-// ===================== HISTORY =====================
-function saveToHistory(data){
-  var h=getHistory();h.unshift(data);
-  if(h.length>50)h=h.slice(0,50);
-  localStorage.setItem('mts_history',JSON.stringify(h));
-}
-function getHistory(){try{return JSON.parse(localStorage.getItem('mts_history')||'[]');}catch(e){return[];}}
-
-function renderHistory(){
-  var history=getHistory();
-  var el=document.getElementById('historyList');
-  if(history.length===0){el.innerHTML='<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>No scripts generated yet.</p></div>';return;}
-  var html='';
-  history.forEach(function(item,idx){
-    var d=new Date(item.date);
-    html+='<div class="history-item" onclick="loadHistory('+idx+')">'
-      +'<div class="history-meta"><div class="history-topic">'+escHtml(item.topic||'Script')+'</div>'
-      +'<div class="history-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'</div></div>'
-      +'<div class="history-tags"><span class="tag">'+(item.tone||'')+'</span></div></div>';
-  });
-  el.innerHTML=html;
-}
-
-function loadHistory(idx){
-  var h=getHistory();var item=h[idx];if(!item)return;
-  currentScript=item;
-  if(item.topic)document.getElementById('topic').value=item.topic;
-  showPage('generate',document.querySelectorAll('.tab')[0]);
-  renderScriptOutput(item.script,item.topic);
-  window.scrollTo(0,0);
-}
-
-function clearHistory(){if(confirm('Clear all history?')){localStorage.removeItem('mts_history');renderHistory();}}
-
-function exportAllData(){
-  var data={};
-  for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k.startsWith('mts_'))data[k]=localStorage.getItem(k);}
-  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='musiceasyeasy_backup.json';a.click();
-}
-
-function clearAllData(){
-  if(confirm('Delete all saved data including API key?')){
-    var keys=[];for(var i=0;i<localStorage.length;i++){if(localStorage.key(i).startsWith('mts_'))keys.push(localStorage.key(i));}
-    keys.forEach(function(k){localStorage.removeItem(k);});
-    loadSaved();alert('All data cleared.');
+function updateCardStatus(i,status){
+  var ph=document.getElementById('ph_'+i);
+  if(!ph)return;
+  if(status==='generating'){
+    ph.innerHTML='<svg class="pulsing spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span style="font-size:10px;color:var(--text3);">Generating...</span>';
+  } else if(status==='waiting'){
+    ph.innerHTML='<svg class="pulsing" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span style="font-size:10px;color:var(--text3);">Model loading, retrying...</span>';
+  } else if(status==='failed'){
+    ph.innerHTML='<span style="font-size:11px;color:var(--red);">✕ Failed</span>';
+    document.getElementById('card_'+i).classList.add('flagged');
+    var rb=document.getElementById('regenBtn_'+i);if(rb)rb.disabled=false;
   }
 }
 
-// ===================== HELPERS =====================
-function copyText(text,btn){
-  navigator.clipboard.writeText(text).then(function(){
-    var orig=btn.innerHTML;
-    btn.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
-    setTimeout(function(){btn.innerHTML=orig;},1800);
-  });
+function updateCardImage(i,url){
+  var ph=document.getElementById('ph_'+i);
+  var img=document.getElementById('img_'+i);
+  var card=document.getElementById('card_'+i);
+  if(ph)ph.style.display='none';
+  if(img){img.src=url;img.style.display='block';}
+  if(card)card.classList.add('approved');
+  var rb=document.getElementById('regenBtn_'+i);if(rb)rb.disabled=false;
+  var db=document.getElementById('dlBtn_'+i);if(db)db.disabled=false;
 }
+
+async function regenImage(i){
+  var btn=document.getElementById('regenBtn_'+i);
+  if(btn){btn.disabled=true;btn.textContent='↺ Regenerating...';}
+  var card=document.getElementById('card_'+i);
+  if(card){card.classList.remove('flagged');card.classList.remove('approved');}
+  var ph=document.getElementById('ph_'+i);
+  var img=document.getElementById('img_'+i);
+  if(ph){ph.style.display='flex';ph.innerHTML='<svg class="pulsing spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span style="font-size:10px;color:var(--text3);">Regenerating...</span>';}
+  if(img)img.style.display='none';
+  try{
+    var blob=await generateImage(currentScenes[i].prompt);
+    currentScenes[i].imgBlob=blob;
+    imageBlobs[i]=blob;
+    updateCardImage(i,URL.createObjectURL(blob));
+  }catch(err){
+    updateCardStatus(i,'failed');
+  }
+  if(btn){btn.disabled=false;btn.textContent='↺ Regenerate';}
+}
+
+function dlImage(i){
+  var blob=imageBlobs[i];if(!blob)return;
+  var fname='scene_'+(i<9?'0':'')+(i+1)+'.jpg';
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download=fname;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function showDownloadBar(){
+  var bar=document.getElementById('downloadBar');
+  if(!bar)return;
+  bar.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+    +'<button class="btn btn-gold" onclick="downloadAll()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download All Images</button>'
+    +'<button class="btn btn-sky" onclick="downloadSRT()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Download Matched SRT</button>'
+    +'</div>';
+}
+
+async function downloadAll(){
+  for(var i=0;i<currentScenes.length;i++){
+    if(!imageBlobs[i])continue;
+    await sleep(300);
+    dlImage(i);
+  }
+}
+
+// ============================================================
+// EXPORT MATCHED SRT
+// ============================================================
+function downloadSRT(){
+  if(currentScenes.length===0)return;
+  // Build a synthetic SRT from scene count
+  // Since we don't have per-word timestamps from Whisper basic API,
+  // we distribute scene durations proportionally by character count
+  var totalChars=currentScenes.reduce(function(sum,s){return sum+s.text.length;},0);
+  // Estimate total duration from audio file size (rough: ~128kbps mp3 = 16KB/s)
+  var estDuration=currentAudioFile?(currentAudioFile.size/16000):120;
+
+  var lines=[];
+  var cursor=0;
+  currentScenes.forEach(function(s,i){
+    var ratio=s.text.length/totalChars;
+    var duration=ratio*estDuration;
+    var start=cursor;
+    var end=cursor+duration;
+    lines.push(i+1);
+    lines.push(formatSRTTime(start)+'  -->  '+formatSRTTime(end));
+    lines.push(s.text);
+    lines.push('');
+    cursor=end;
+  });
+
+  var blob=new Blob([lines.join('\n')],{type:'text/plain'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='musiceasyeasy_matched.srt';
+  a.click();
+}
+
+function formatSRTTime(s){
+  var h=Math.floor(s/3600);
+  var m=Math.floor((s%3600)/60);
+  var sec=Math.floor(s%60);
+  var ms=Math.round((s%1)*1000);
+  return pad(h)+':'+pad(m)+':'+pad(sec)+','+pad(ms,3);
+}
+function pad(n,len){var s=String(Math.floor(n));while(s.length<(len||2))s='0'+s;return s;}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function saveToHistory(data){var h=getHistory();h.unshift(data);if(h.length>50)h=h.slice(0,50);localStorage.setItem('mts_history',JSON.stringify(h));}
+function getHistory(){try{return JSON.parse(localStorage.getItem('mts_history')||'[]');}catch(e){return[];}}
+function renderHistory(){
+  var h=getHistory();var el=document.getElementById('historyList');
+  if(h.length===0){el.innerHTML='<div class="empty-state"><p>No scripts generated yet.</p></div>';return;}
+  el.innerHTML=h.map(function(item,idx){
+    var d=new Date(item.date);
+    return'<div class="history-item" onclick="loadHistory('+idx+')">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
+      +'<div style="font-family:\'Playfair Display\',serif;font-size:16px;">'+escHtml(item.topic||'Script')+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);">'+d.toLocaleDateString()+'</div></div>'
+      +'<span style="font-size:11px;padding:2px 10px;border-radius:99px;background:var(--bg3);color:var(--text3);border:0.5px solid var(--border);">'+item.tone+'</span>'
+      +'</div>';
+  }).join('');
+}
+function loadHistory(idx){
+  var item=getHistory()[idx];if(!item)return;
+  currentScript=item;
+  if(item.topic)document.getElementById('topic').value=item.topic;
+  showPage('generate',document.querySelectorAll('.tab')[0]);
+  renderScript(item.script,item.topic);window.scrollTo(0,0);
+}
+function clearHistory(){if(confirm('Clear all history?')){localStorage.removeItem('mts_history');renderHistory();}}
+function exportData(){
+  var data={};for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k.startsWith('mts_'))data[k]=localStorage.getItem(k);}
+  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='musiceasyeasy_backup.json';a.click();
+}
+function clearAllData(){
+  if(confirm('Delete all data?')){
+    var keys=[];for(var i=0;i<localStorage.length;i++){if(localStorage.key(i).startsWith('mts_'))keys.push(localStorage.key(i));}
+    keys.forEach(function(k){localStorage.removeItem(k);});loadSaved();alert('Cleared.');
+  }
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function escJs(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');}
 
 loadSaved();
 </script>
