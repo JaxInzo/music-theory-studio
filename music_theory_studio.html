@@ -457,7 +457,7 @@ var colorMap={
 };
 
 // The core hand-drawn image prompt prefix — locked and consistent
-var HAND_DRAWN_PREFIX='Create a simple, hand-drawn educational illustration in the style of a friendly music teacher sketching on a whiteboard or notebook. The drawing must look genuinely hand-drawn — imperfect lines, natural sketch quality, no digital polish. Keep it extremely simple: only draw what is directly needed to illustrate the concept. No clutter, no decorative extras, lots of empty space. No text or labels in the image. Music theory elements (notes, staffs, clefs, keys) must be accurate and clearly drawn. The image should be immediately understandable at a glance to a complete beginner.';
+var HAND_DRAWN_PREFIX='Create a simple, hand-drawn educational illustration in 16:9 widescreen format (landscape orientation). The style should look like a friendly music teacher sketching on a whiteboard or notebook. The drawing must look genuinely hand-drawn — imperfect lines, natural sketch quality, no digital polish. Keep it extremely simple: only draw what is directly needed to illustrate the concept. No clutter, no decorative extras, lots of empty space around the central element. No text or labels in the image. Music theory elements (notes, staffs, clefs, keys) must be accurate and clearly drawn. The image should be immediately understandable at a glance to a complete beginner. The composition must be centered and work well in a wide landscape frame.';
 
 function getStyleString(artKey,colorKey,extraNotes){
   var art=artStyleMap[artKey]||artStyleMap.navy;
@@ -785,7 +785,7 @@ async function generateFromSRT(){
     return'Block '+(i+1)+' ['+fmtTime(b.start)+'–'+fmtTime(b.end)+']: '+b.text;
   }).join('\n');
 
-  var promptInstruction=HAND_DRAWN_PREFIX+'\n\nChannel: "'+channelName+'". Style for all images: '+styleStr+'\n\nFor each SRT block below, generate exactly one image generation prompt. Each prompt must:\n1. Directly and specifically illustrate what is being spoken about in that block\n2. Begin with: "Hand-drawn educational music theory sketch:"\n3. Describe only the key visual element needed — one main thing, simply drawn\n4. Specify the style: '+styleStr+'\n5. Be under 50 words\n6. NOT include any text or labels in the image\n7. Be accurate to music theory (correct note positions, correct clef shapes, etc.)\n\nOutput ONLY numbered prompts, one per block:\n1. [prompt]\n2. [prompt]\netc.\n\nSRT blocks:\n'+blocksText;
+  var promptInstruction=HAND_DRAWN_PREFIX+'\n\nChannel: "'+channelName+'". Style for all images: '+styleStr+'\n\nFor each SRT block below, generate exactly one image generation prompt. Each prompt must:\n1. Directly and specifically illustrate what is being spoken about in that block\n2. Begin with: "16:9 widescreen hand-drawn educational music theory sketch:"\n3. Describe only the key visual element needed — one main thing, simply drawn, centered in a wide landscape frame\n4. Specify the style: '+styleStr+'\n5. Be under 50 words\n6. NOT include any text or labels in the image\n7. Be accurate to music theory (correct note positions, correct clef shapes, etc.)\n8. Always specify landscape orientation and 16:9 aspect ratio\n\nOutput ONLY numbered prompts, one per block:\n1. [prompt]\n2. [prompt]\netc.\n\nSRT blocks:\n'+blocksText;
 
   try{
     setProgress(40,'Sending to Gemini...','srtProgressFill','srtProgressLabel');
