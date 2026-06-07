@@ -469,30 +469,45 @@ async function callGemini(prompt,maxTokens){
 async function transcribeAudio(audioFile){
   var key=document.getElementById('hfKey').value.trim();
   if(!key)throw new Error('Please enter your Hugging Face API key.');
-  var formData=new FormData();
-  formData.append('file',audioFile);
-  // Use whisper-large-v3 for best accuracy
-  var r=await fetch('https://api-inference.huggingface.co/models/openai/whisper-large-v3',{
+
+  // Convert to base64 for new inference providers endpoint
+  var arrayBuf=await audioFile.arrayBuffer();
+  var bytes=new Uint8Array(arrayBuf);
+  var binary='';
+  for(var i=0;i<bytes.byteLength;i++)binary+=String.fromCharCode(bytes[i]);
+  var base64=btoa(binary);
+
+  // Try new router endpoint first
+  var r=await fetch('https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3',{
     method:'POST',
-    headers:{'Authorization':'Bearer '+key},
-    body:formData
+    headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
+    body:JSON.stringify({inputs:base64})
   });
+
+  // Fallback to legacy formdata endpoint
   if(!r.ok){
-    var txt=await r.text();
-    if(r.status===503){
-      // Model loading — wait and retry once
-      await sleep(25000);
-      r=await fetch('https://api-inference.huggingface.co/models/openai/whisper-large-v3',{method:'POST',headers:{'Authorization':'Bearer '+key},body:formData});
-      if(!r.ok)throw new Error('Whisper model still loading. Please try again in 1 minute.');
-    } else {
-      throw new Error('Transcription failed: '+r.status+'. '+txt.slice(0,100));
+    var formData=new FormData();formData.append('file',audioFile);
+    r=await fetch('https://api-inference.huggingface.co/models/openai/whisper-large-v3',{
+      method:'POST',headers:{'Authorization':'Bearer '+key},body:formData
+    });
+    if(!r.ok){
+      var txt=await r.text();
+      if(r.status===503){
+        await sleep(25000);
+        var fd2=new FormData();fd2.append('file',audioFile);
+        r=await fetch('https://api-inference.huggingface.co/models/openai/whisper-large-v3',{method:'POST',headers:{'Authorization':'Bearer '+key},body:fd2});
+        if(!r.ok)throw new Error('Whisper model still loading. Please try again in 1 minute.');
+      } else {
+        throw new Error('Transcription failed ('+r.status+'): '+txt.slice(0,100));
+      }
     }
   }
+
   var d=await r.json();
-  // Whisper returns {text: "..."} — we need the full text then split by Claude
   if(d.text)return d.text;
+  if(Array.isArray(d)&&d[0]&&d[0].text)return d.map(function(x){return x.text;}).join(' ');
   if(d.error)throw new Error('Whisper error: '+d.error);
-  throw new Error('Unexpected transcription response.');
+  throw new Error('Unexpected transcription response: '+JSON.stringify(d).slice(0,100));
 }
 
 // ============================================================
