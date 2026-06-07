@@ -151,14 +151,14 @@
         <p style="font-size:11px;color:var(--text3);margin-top:4px;"><a href="https://aistudio.google.com" target="_blank" style="color:var(--gold);text-decoration:none;">aistudio.google.com</a> — free</p>
       </div>
       <div class="field">
-        <label for="hfKey">Hugging Face key — transcription</label>
+        <label for="groqKey">Groq API key — transcription</label>
         <div class="pw-wrap">
-          <input type="password" id="hfKey" placeholder="hf_..." oninput="localStorage.setItem('ac_hf',this.value)">
-          <button class="pw-toggle" onclick="toggleKey('hfKey','eye2')" aria-label="Toggle">
+          <input type="password" id="groqKey" placeholder="gsk_..." oninput="localStorage.setItem('ac_groq',this.value)">
+          <button class="pw-toggle" onclick="toggleKey('groqKey','eye2')" aria-label="Toggle">
             <svg id="eye2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
-        <p style="font-size:11px;color:var(--text3);margin-top:4px;"><a href="https://huggingface.co/settings/tokens" target="_blank" style="color:var(--gold);text-decoration:none;">huggingface.co/settings/tokens</a> — free</p>
+        <p style="font-size:11px;color:var(--text3);margin-top:4px;"><a href="https://console.groq.com" target="_blank" style="color:var(--gold);text-decoration:none;">console.groq.com</a> — free</p>
       </div>
     </div>
   </div>
@@ -262,7 +262,7 @@ function toggleKey(inputId,iconId){
 
 function loadSaved(){
   var gk=localStorage.getItem('ac_gemini');if(gk)document.getElementById('geminiKey').value=gk;
-  var hk=localStorage.getItem('ac_hf');if(hk)document.getElementById('hfKey').value=hk;
+  var gk=localStorage.getItem('ac_groq');if(gk)document.getElementById('groqKey').value=gk;
   var sc=localStorage.getItem('ac_script');if(sc)document.getElementById('scriptText').value=sc;
 }
 
@@ -330,12 +330,12 @@ function checkReady(){
   var hasAudio=!!audioFile;
   var hasScript=document.getElementById('scriptText').value.trim().length>20;
   var hasGemini=document.getElementById('geminiKey').value.trim().length>5;
-  var hasHF=document.getElementById('hfKey').value.trim().length>5;
+  var hasGroq=document.getElementById('groqKey').value.trim().length>5;
   document.getElementById('cleanBtn').disabled=!(hasAudio&&hasScript&&hasGemini&&hasHF);
 }
 
 document.getElementById('geminiKey').addEventListener('input',checkReady);
-document.getElementById('hfKey').addEventListener('input',checkReady);
+document.getElementById('groqKey').addEventListener('input',checkReady);
 
 // ============================================================
 // STATUS / PROGRESS
@@ -353,46 +353,31 @@ function hideProgress(){document.getElementById('mainProgress').className='progr
 // WHISPER TRANSCRIPTION
 // ============================================================
 async function transcribeAudio(file){
-  var key=document.getElementById('hfKey').value.trim();
+  var key=document.getElementById('groqKey').value.trim();
+  if(!key)throw new Error('Please enter your Groq API key.');
 
-  // Convert file to base64 for the API
-  var arrayBuf=await file.arrayBuffer();
-  var bytes=new Uint8Array(arrayBuf);
-  var binary='';
-  for(var i=0;i<bytes.byteLength;i++)binary+=String.fromCharCode(bytes[i]);
-  var base64=btoa(binary);
+  // Groq accepts multipart/form-data — works fine from browser
+  var fd=new FormData();
+  fd.append('file',file,file.name||'audio.mp3');
+  fd.append('model','whisper-large-v3');
+  fd.append('response_format','json');
+  fd.append('language','en');
 
-  // Try new inference providers endpoint first
-  var r=await fetch('https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3',{
+  var r=await fetch('https://api.groq.com/openai/v1/audio/transcriptions',{
     method:'POST',
-    headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
-    body:JSON.stringify({inputs:base64})
+    headers:{'Authorization':'Bearer '+key},
+    body:fd
   });
 
-  // Fallback to legacy endpoint if new one fails
   if(!r.ok){
-    var fd=new FormData();fd.append('file',file);
-    r=await fetch('https://api-inference.huggingface.co/models/openai/whisper-large-v3',{
-      method:'POST',headers:{'Authorization':'Bearer '+key},body:fd
-    });
-  }
-
-  if(!r.ok){
-    var txt=await r.text();
-    if(r.status===503){
-      await sleep(25000);
-      var fd2=new FormData();fd2.append('file',file);
-      r=await fetch('https://api-inference.huggingface.co/models/openai/whisper-large-v3',{
-        method:'POST',headers:{'Authorization':'Bearer '+key},body:fd2
-      });
-    }
-    if(!r.ok)throw new Error('Transcription failed ('+r.status+'). Model may still be loading — please wait 1 minute and try again.');
+    var errData=await r.json().catch(function(){return{};});
+    var msg=errData.error&&errData.error.message?errData.error.message:'Groq transcription failed ('+r.status+')';
+    throw new Error(msg);
   }
 
   var d=await r.json();
   if(d.text)return d.text;
-  if(Array.isArray(d)&&d[0]&&d[0].text)return d.map(function(x){return x.text;}).join(' ');
-  throw new Error('Unexpected transcription response: '+JSON.stringify(d).slice(0,120));
+  throw new Error('Unexpected Groq response: '+JSON.stringify(d).slice(0,120));
 }
 
 // ============================================================
