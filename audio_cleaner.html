@@ -396,26 +396,30 @@ async function getEditDecisions(transcription,script){
   if(!d.candidates||!d.candidates[0])throw new Error('No response from Gemini. You may have hit your daily quota.');
   var raw=d.candidates[0].content.parts[0].text;
 
+  // Log raw response for debugging
+  console.log('Gemini raw response:',raw.slice(0,500));
+
   // Robustly extract JSON array from response
-  // Strip markdown fences
   raw=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
-  // Find the first [ and last ] to extract just the array
   var start=raw.indexOf('[');
   var end=raw.lastIndexOf(']');
-  if(start===-1||end===-1)throw new Error('Gemini did not return a JSON array. Try again.');
+
+  // If no array found, show first 300 chars of response to help diagnose
+  if(start===-1||end===-1){
+    throw new Error('Gemini returned unexpected format. First 300 chars: '+raw.slice(0,300));
+  }
+
   raw=raw.slice(start,end+1);
-  // Fix common Gemini JSON issues: trailing commas before ] or }
   raw=raw.replace(/,\s*\]/g,']').replace(/,\s*\}/g,'}');
 
   try{
     return JSON.parse(raw);
   }catch(parseErr){
-    // Last resort: try to fix single quotes
     raw=raw.replace(/'/g,'"');
     try{
       return JSON.parse(raw);
     }catch(e2){
-      throw new Error('Could not parse Gemini response as JSON. Error at: '+parseErr.message+'. Try running again.');
+      throw new Error('Could not parse Gemini response. Raw: '+raw.slice(0,300));
     }
   }
 }
