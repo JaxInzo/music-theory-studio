@@ -289,15 +289,36 @@ function handleAudio(files){
     +'<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:var(--green-bg);color:var(--green);">'+sizeMB+' MB</span>'
     +'</div>';
 
-  // Draw waveform preview
+  // Draw waveform preview — try to decode, but don't block if it fails (M4A support varies by browser)
   var reader=new FileReader();
   reader.onload=function(e){
-    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-    audioCtx.decodeAudioData(e.target.result.slice(0),function(buf){
-      audioBuffer=buf;
-      drawWaveform(buf);
+    try{
+      audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+      audioCtx.decodeAudioData(
+        e.target.result.slice(0),
+        function(buf){
+          audioBuffer=buf;
+          drawWaveform(buf);
+          checkReady();
+        },
+        function(err){
+          // Decode failed — file may still be fine for Groq (it handles M4A natively)
+          // Mark as ready anyway, we just won't show waveform
+          console.warn('Waveform decode failed (may be M4A/codec issue):', err);
+          audioBuffer=null;
+          document.getElementById('waveformWrap').style.display='none';
+          document.getElementById('audioInfo').innerHTML+='<p style="font-size:11px;color:var(--gold);margin-top:6px;">⚠ Waveform preview unavailable for this format — file will still be processed correctly.</p>';
+          checkReady();
+        }
+      );
+    }catch(ex){
+      console.warn('AudioContext error:',ex);
+      audioBuffer=null;
       checkReady();
-    });
+    }
+  };
+  reader.onerror=function(){
+    setStatus('Could not read file. Please try again.','error');
   };
   reader.readAsArrayBuffer(audioFile);
 }
@@ -633,6 +654,9 @@ async function cleanAudio(){
 
     // Step 3: Build clean audio using real timestamps
     setProgress(75,'Step 3 of 3 — Cutting at exact positions and building clean audio...');
+    if(!audioBuffer){
+      throw new Error('Audio could not be decoded in your browser. Please convert your recording to MP3 or WAV format and try again. A free converter like cloudconvert.com takes 30 seconds.');
+    }
     cleanedBuffer=await buildCleanAudio(result,audioBuffer);
 
     setProgress(100,'Done!');
