@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MusicIsEasy — Video Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0f0e0c;--bg2:#1a1814;--bg3:#242018;--bg4:#2e2820;
+    --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+    --gold:#c9a84c;--gold2:#e8c96a;--gold-dim:rgba(201,168,76,0.12);
+    --coral:#e8644a;--coral-dim:rgba(232,100,74,0.12);
+    --sky:#5b9fd4;--sky-dim:rgba(91,159,212,0.12);
+    --text:#f0ece4;--text2:#a09880;--text3:#6a6050;
+    --green:#4caf82;--green-bg:rgba(76,175,130,0.1);
+    --red:#e05555;--red-bg:rgba(224,85,85,0.1);
+    --blue:#5b9bd5;--blue-bg:rgba(91,155,213,0.1);
+    --radius:10px;--radius-lg:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;}
+
+  .header{border-bottom:0.5px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;background:var(--bg2);}
+  .logo{display:flex;align-items:center;gap:12px;}
+  .logo-icon{width:34px;height:34px;background:var(--gold-dim);border:0.5px solid var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .logo-text{font-family:'Playfair Display',serif;font-size:17px;color:var(--gold2);}
+  .logo-sub{font-size:11px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;}
+
+  .main{max-width:860px;margin:0 auto;padding:36px 32px 80px;}
+
+  .step{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:16px;transition:border-color 0.2s;}
+  .step.active{border-color:var(--gold);}
+  .step.complete{border-color:var(--green);}
+  .step.error-state{border-color:var(--red);}
+
+  .step-header{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+  .step-num{width:32px;height:32px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--text3);flex-shrink:0;transition:all 0.2s;}
+  .step.active .step-num{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);}
+  .step.complete .step-num{background:var(--green-bg);border-color:var(--green);color:var(--green);}
+  .step-title{font-family:'Playfair Display',serif;font-size:16px;color:var(--text);}
+  .step-sub{font-size:12px;color:var(--text3);margin-top:1px;}
+
+  .drop-zone{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg3);}
+  .drop-zone:hover,.drop-zone.dragover{border-color:var(--gold);background:var(--gold-dim);}
+  .drop-zone svg{margin-bottom:10px;opacity:0.4;}
+  .drop-zone p{font-size:13px;color:var(--text3);}
+  .drop-zone strong{color:var(--text2);}
+  .drop-zone input{display:none;}
+
+  .file-list{margin-top:12px;display:flex;flex-direction:column;gap:6px;}
+  .file-item{display:flex;align-items:center;gap:10px;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;}
+  .file-item svg{flex-shrink:0;opacity:0.6;}
+  .file-name{flex:1;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .file-badge{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--bg4);color:var(--text3);border:0.5px solid var(--border);white-space:nowrap;}
+  .file-badge.gold{background:var(--gold-dim);color:var(--gold);border-color:rgba(201,168,76,0.3);}
+  .file-badge.green{background:var(--green-bg);color:var(--green);border-color:rgba(76,175,130,0.2);}
+  .file-badge.coral{background:var(--coral-dim);color:var(--coral);border-color:rgba(232,100,74,0.2);}
+
+  .img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;margin-top:12px;}
+  .img-thumb{border-radius:6px;overflow:hidden;aspect-ratio:16/9;background:var(--bg3);border:0.5px solid var(--border);position:relative;}
+  .img-thumb img{width:100%;height:100%;object-fit:cover;}
+  .img-thumb-num{position:absolute;top:4px;left:4px;font-size:10px;font-weight:600;background:rgba(0,0,0,0.7);color:var(--gold);padding:1px 5px;border-radius:4px;}
+
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all 0.18s;font-weight:400;}
+  .btn:hover{background:var(--bg2);color:var(--text);}
+  .btn:active{transform:scale(0.98);}
+  .btn-gold{background:var(--gold);border-color:var(--gold);color:#1a1408;font-weight:500;}
+  .btn-gold:hover{background:var(--gold2);border-color:var(--gold2);color:#1a1408;}
+  .btn-lg{width:100%;justify-content:center;padding:14px 24px;font-size:15px;font-weight:500;border-radius:var(--radius-lg);margin-top:8px;}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+
+  .status{padding:12px 16px;border-radius:var(--radius);font-size:13px;margin-top:12px;display:none;}
+  .status.show{display:block;}
+  .status.info{background:var(--blue-bg);color:var(--blue);border:0.5px solid rgba(91,155,213,0.2);}
+  .status.success{background:var(--green-bg);color:var(--green);border:0.5px solid rgba(76,175,130,0.2);}
+  .status.error{background:var(--red-bg);color:var(--red);border:0.5px solid rgba(224,85,85,0.2);}
+  .status.warning{background:rgba(201,168,76,0.1);color:var(--gold);border:0.5px solid rgba(201,168,76,0.2);}
+
+  .progress-wrap{margin-top:16px;display:none;}
+  .progress-wrap.show{display:block;}
+  .progress-label{font-size:12px;color:var(--text3);margin-bottom:6px;}
+  .progress-bar-bg{background:var(--bg3);border-radius:99px;height:5px;overflow:hidden;}
+  .progress-bar-fill{height:5px;background:var(--gold);border-radius:99px;transition:width 0.3s ease;width:0%;}
+
+  .preview-wrap{margin-top:16px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;}
+  .preview-title{font-size:12px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:12px;}
+  .timeline{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;}
+  .tl-item{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg2);border-radius:6px;border:0.5px solid var(--border);}
+  .tl-img{width:56px;height:32px;border-radius:4px;object-fit:cover;background:var(--bg4);flex-shrink:0;border:0.5px solid var(--border);}
+  .tl-info{flex:1;min-width:0;}
+  .tl-scene{font-size:11px;color:var(--gold);font-weight:500;}
+  .tl-text{font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tl-time{font-size:11px;color:var(--text3);white-space:nowrap;font-variant-numeric:tabular-nums;}
+
+  .settings-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+  label{display:block;font-size:12px;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:5px;font-weight:500;}
+  select,input[type=range]{width:100%;}
+  select{background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:9px 12px;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236a6050' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer;}
+  select:focus{border-color:var(--gold);}
+
+  .divider{border:none;border-top:0.5px solid var(--border);margin:20px 0;}
+
+  .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+  .summary-card{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;}
+  .summary-val{font-family:'Playfair Display',serif;font-size:24px;color:var(--gold2);margin-bottom:2px;}
+  .summary-key{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;}
+
+  .warning-box{background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:var(--radius);padding:12px 14px;font-size:13px;color:var(--gold);margin-top:10px;display:none;}
+  .warning-box.show{display:block;}
+
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .spinner{animation:spin 0.8s linear infinite;display:inline-block;}
+  ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px;}
+
+  canvas{display:none;}
+
+  @media(max-width:600px){.main{padding:20px 16px 60px;}.header{padding:14px 16px;}.settings-row,.summary-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">&#9835;</div>
+    <div>
+      <div class="logo-text">MusicIsEasy</div>
+      <div class="logo-sub">Video Builder</div>
+    </div>
+  </div>
+  <div style="font-size:12px;color:var(--text3);">Sync images to voiceover automatically</div>
+</div>
+
+<div class="main">
+
+  <p style="font-size:13px;color:var(--text3);margin-bottom:24px;line-height:1.7;">Upload your voiceover audio, SRT transcript from TurboScribe, and numbered scene images. The app will sync everything automatically and export a finished MP4 video.</p>
+
+  <!-- STEP 1: AUDIO -->
+  <div class="step active" id="step1">
+    <div class="step-header">
+      <div class="step-num" id="num1">1</div>
+      <div>
+        <div class="step-title">Voiceover Audio</div>
+        <div class="step-sub">Upload your recorded MP3 or WAV file</div>
+      </div>
+    </div>
+    <div class="drop-zone" id="audioZone" onclick="document.getElementById('audioInput').click()" ondragover="onDrag(event,'audioZone')" ondragleave="offDrag('audioZone')" ondrop="onDrop(event,'audio')">
+      <input type="file" id="audioInput" accept=".mp3,.wav,.m4a,.ogg" onchange="handleAudio(this.files)">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      <p><strong>Click to upload</strong> or drag and drop</p>
+      <p style="margin-top:4px;">MP3, WAV, M4A supported</p>
+    </div>
+    <div id="audioList" class="file-list"></div>
+    <div class="status" id="audioStatus"></div>
+  </div>
+
+  <!-- STEP 2: SRT -->
+  <div class="step" id="step2">
+    <div class="step-header">
+      <div class="step-num" id="num2">2</div>
+      <div>
+        <div class="step-title">SRT Transcript</div>
+        <div class="step-sub">Export as SRT from TurboScribe and upload here</div>
+      </div>
+    </div>
+    <div class="drop-zone" id="srtZone" onclick="document.getElementById('srtInput').click()" ondragover="onDrag(event,'srtZone')" ondragleave="offDrag('srtZone')" ondrop="onDrop(event,'srt')">
+      <input type="file" id="srtInput" accept=".srt,.txt" onchange="handleSRT(this.files)">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <p><strong>Click to upload</strong> or drag and drop</p>
+      <p style="margin-top:4px;">SRT file from TurboScribe</p>
+    </div>
+    <div id="srtList" class="file-list"></div>
+    <div id="srtPreview" style="display:none;margin-top:12px;">
+      <div class="preview-title">Detected scenes from SRT</div>
+      <div class="timeline" id="srtTimeline"></div>
+    </div>
+    <div class="status" id="srtStatus"></div>
+  </div>
+
+  <!-- STEP 3: IMAGES -->
+  <div class="step" id="step3">
+    <div class="step-header">
+      <div class="step-num" id="num3">3</div>
+      <div>
+        <div class="step-title">Scene Images</div>
+        <div class="step-sub">Upload all images named scene_01.jpg, scene_02.jpg etc.</div>
+      </div>
+    </div>
+    <div class="drop-zone" id="imgZone" onclick="document.getElementById('imgInput').click()" ondragover="onDrag(event,'imgZone')" ondragleave="offDrag('imgZone')" ondrop="onDrop(event,'img')">
+      <input type="file" id="imgInput" accept="image/*" multiple onchange="handleImages(this.files)">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      <p><strong>Click to upload</strong> or drag and drop</p>
+      <p style="margin-top:4px;">Select all images at once — they will be sorted automatically</p>
+    </div>
+    <div id="imgGrid" class="img-grid" style="display:none;"></div>
+    <div class="warning-box" id="countWarning"></div>
+    <div class="status" id="imgStatus"></div>
+  </div>
+
+  <!-- STEP 4: SETTINGS & BUILD -->
+  <div class="step" id="step4">
+    <div class="step-header">
+      <div class="step-num" id="num4">4</div>
+      <div>
+        <div class="step-title">Settings &amp; Build</div>
+        <div class="step-sub">Configure output and build your video</div>
+      </div>
+    </div>
+
+    <div id="buildSummary" style="display:none;">
+      <div class="summary-grid" id="summaryGrid"></div>
+    </div>
+
+    <div class="settings-row">
+      <div>
+        <label for="resolution">Output resolution</label>
+        <select id="resolution">
+          <option value="1920x1080">1920×1080 (Full HD — recommended)</option>
+          <option value="1280x720">1280×720 (HD)</option>
+          <option value="3840x2160">3840×2160 (4K)</option>
+        </select>
+      </div>
+      <div>
+        <label for="transition">Image transition</label>
+        <select id="transition">
+          <option value="cut">Hard cut (instant)</option>
+          <option value="fade" selected>Fade (smooth)</option>
+          <option value="zoom">Subtle zoom</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="settings-row" style="margin-top:12px;">
+      <div>
+        <label for="padStart">Intro hold (seconds)</label>
+        <select id="padStart">
+          <option value="0">0 seconds</option>
+          <option value="0.5">0.5 seconds</option>
+          <option value="1" selected>1 second</option>
+          <option value="2">2 seconds</option>
+        </select>
+      </div>
+      <div>
+        <label for="padEnd">Outro hold (seconds)</label>
+        <select id="padEnd">
+          <option value="0">0 seconds</option>
+          <option value="1">1 second</option>
+          <option value="2" selected>2 seconds</option>
+          <option value="3">3 seconds</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="status" id="buildStatus"></div>
+    <div class="progress-wrap" id="buildProgress">
+      <div class="progress-label" id="buildLabel">Building video...</div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="buildFill"></div></div>
+    </div>
+
+    <button class="btn btn-gold btn-lg" id="buildBtn" onclick="buildVideo()" disabled>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Build Video
+    </button>
+
+    <div id="downloadWrap" style="display:none;margin-top:16px;text-align:center;">
+      <div style="background:var(--green-bg);border:0.5px solid rgba(76,175,130,0.2);border-radius:var(--radius);padding:20px;margin-bottom:12px;">
+        <div style="font-size:32px;margin-bottom:8px;">🎬</div>
+        <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--green);margin-bottom:4px;">Video Ready!</div>
+        <div style="font-size:13px;color:var(--text3);" id="videoInfo"></div>
+      </div>
+      <a id="downloadBtn" class="btn btn-gold btn-lg" style="text-decoration:none;display:flex;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download MP4
+      </a>
+      <button class="btn btn-lg" style="margin-top:8px;" onclick="resetAll()">Build another video</button>
+    </div>
+  </div>
+
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+var state={audio:null,srtBlocks:[],images:[],ready:{audio:false,srt:false,img:false}};
+
+// Drag and drop helpers
+function onDrag(e,id){e.preventDefault();document.getElementById(id).classList.add('dragover');}
+function offDrag(id){document.getElementById(id).classList.remove('dragover');}
+function onDrop(e,type){
+  e.preventDefault();
+  offDrag(type==='audio'?'audioZone':type==='srt'?'srtZone':'imgZone');
+  var files=e.dataTransfer.files;
+  if(type==='audio')handleAudio(files);
+  else if(type==='srt')handleSRT(files);
+  else handleImages(files);
+}
+
+function setStatus(id,msg,type){
+  var el=document.getElementById(id);
+  el.textContent=msg;el.className='status show '+type;
+}
+function hideStatus(id){document.getElementById(id).className='status';}
+
+function setStep(num,state){
+  var step=document.getElementById('step'+num);
+  var numEl=document.getElementById('num'+num);
+  step.className='step'+(state?' '+state:'');
+  if(state==='complete')numEl.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+  else numEl.textContent=num;
+}
+
+function checkReady(){
+  if(state.ready.audio&&state.ready.srt&&state.ready.img){
+    document.getElementById('buildBtn').disabled=false;
+    setStep(4,'active');
+    updateSummary();
+  }
+}
+
+// AUDIO
+function handleAudio(files){
+  if(!files||files.length===0)return;
+  var file=files[0];
+  if(!file.type.startsWith('audio/')){setStatus('audioStatus','Please upload an audio file (MP3, WAV, M4A).','error');return;}
+  state.audio=file;
+  state.ready.audio=true;
+  var list=document.getElementById('audioList');
+  list.innerHTML='<div class="file-item">'
+    +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>'
+    +'<span class="file-name">'+file.name+'</span>'
+    +'<span class="file-badge green">'+formatSize(file.size)+'</span>'
+    +'</div>';
+  hideStatus('audioStatus');
+  setStep(1,'complete');
+  checkReady();
+}
+
+// SRT PARSING
+function parseSRT(text){
+  var blocks=[];
+  var lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  var i=0;
+  while(i<lines.length){
+    var line=lines[i].trim();
+    if(/^\d+$/.test(line)){
+      var num=parseInt(line);
+      i++;
+      if(i>=lines.length)break;
+      var timeLine=lines[i].trim();
+      var timeMatch=timeLine.match(/(\d{2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[,.](\d{3})/);
+      if(timeMatch){
+        var start=parseInt(timeMatch[1])*3600+parseInt(timeMatch[2])*60+parseInt(timeMatch[3])+parseInt(timeMatch[4])/1000;
+        var end=parseInt(timeMatch[5])*3600+parseInt(timeMatch[6])*60+parseInt(timeMatch[7])+parseInt(timeMatch[8])/1000;
+        i++;
+        var textLines=[];
+        while(i<lines.length&&lines[i].trim()!==''){
+          textLines.push(lines[i].trim());i++;
+        }
+        if(textLines.length>0)blocks.push({num:num,start:start,end:end,text:textLines.join(' ')});
+      }
+    }
+    i++;
+  }
+  return blocks;
+}
+
+function handleSRT(files){
+  if(!files||files.length===0)return;
+  var file=files[0];
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var text=e.target.result;
+    var blocks=parseSRT(text);
+    if(blocks.length===0){setStatus('srtStatus','Could not parse SRT file. Make sure it is a valid SRT from TurboScribe.','error');return;}
+    state.srtBlocks=blocks;
+    state.ready.srt=true;
+
+    var list=document.getElementById('srtList');
+    list.innerHTML='<div class="file-item">'
+      +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+      +'<span class="file-name">'+file.name+'</span>'
+      +'<span class="file-badge green">'+blocks.length+' blocks detected</span>'
+      +'</div>';
+
+    // Show preview
+    var tl=document.getElementById('srtTimeline');
+    tl.innerHTML=blocks.slice(0,8).map(function(b){
+      return'<div class="tl-item">'
+        +'<div style="width:40px;height:24px;background:var(--bg4);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--gold);border:0.5px solid var(--border);flex-shrink:0;">'+b.num+'</div>'
+        +'<div class="tl-info"><div class="tl-text">'+b.text+'</div></div>'
+        +'<div class="tl-time">'+fmtTime(b.start)+' → '+fmtTime(b.end)+'</div>'
+        +'</div>';
+    }).join('')+(blocks.length>8?'<div style="text-align:center;padding:8px;font-size:12px;color:var(--text3);">...and '+(blocks.length-8)+' more blocks</div>':'');
+    document.getElementById('srtPreview').style.display='block';
+
+    hideStatus('srtStatus');
+    setStep(2,'complete');
+    checkReady();
+  };
+  reader.readAsText(file);
+}
+
+// IMAGES
+function handleImages(files){
+  if(!files||files.length===0)return;
+  var arr=Array.from(files).filter(function(f){return f.type.startsWith('image/');});
+  if(arr.length===0){setStatus('imgStatus','Please upload image files.','error');return;}
+
+  // Sort by filename numerically
+  arr.sort(function(a,b){
+    var na=extractNum(a.name),nb=extractNum(b.name);
+    return na-nb;
+  });
+
+  state.images=arr;
+  state.ready.img=true;
+
+  // Build thumbnail grid
+  var grid=document.getElementById('imgGrid');
+  grid.style.display='grid';
+  grid.innerHTML='';
+  arr.forEach(function(f,i){
+    var url=URL.createObjectURL(f);
+    var div=document.createElement('div');
+    div.className='img-thumb';
+    div.innerHTML='<img src="'+url+'" alt="Scene '+(i+1)+'"><div class="img-thumb-num">'+(i+1)+'</div>';
+    grid.appendChild(div);
+  });
+
+  hideStatus('imgStatus');
+  setStep(3,'complete');
+
+  // Check count vs SRT
+  checkCountMatch();
+  checkReady();
+}
+
+function extractNum(name){
+  var m=name.match(/(\d+)/g);
+  return m?parseInt(m[0]):0;
+}
+
+function checkCountMatch(){
+  var warn=document.getElementById('countWarning');
+  if(state.srtBlocks.length>0&&state.images.length>0){
+    var sc=state.srtBlocks.length,im=state.images.length;
+    if(sc!==im){
+      warn.textContent='⚠ You have '+sc+' SRT blocks and '+im+' images. Ideally these should match. The app will do its best to sync them — extra images will be spread evenly across remaining audio time.';
+      warn.className='warning-box show';
+    } else {
+      warn.className='warning-box';
+    }
+  }
+}
+
+function updateSummary(){
+  var sc=state.srtBlocks.length,im=state.images.length;
+  var duration=sc>0?state.srtBlocks[sc-1].end:0;
+  document.getElementById('buildSummary').style.display='block';
+  document.getElementById('summaryGrid').innerHTML=
+    '<div class="summary-card"><div class="summary-val">'+im+'</div><div class="summary-key">Images</div></div>'
+    +'<div class="summary-card"><div class="summary-val">'+sc+'</div><div class="summary-key">SRT Blocks</div></div>'
+    +'<div class="summary-card"><div class="summary-val">'+fmtTime(duration)+'</div><div class="summary-key">Duration</div></div>';
+}
+
+// VIDEO BUILDING
+async function buildVideo(){
+  var btn=document.getElementById('buildBtn');
+  btn.disabled=true;
+  btn.innerHTML='<svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Building...';
+
+  document.getElementById('downloadWrap').style.display='none';
+  var prog=document.getElementById('buildProgress');
+  prog.className='progress-wrap show';
+  setStatus('buildStatus','Starting video build...','info');
+
+  var res=document.getElementById('resolution').value.split('x');
+  var W=parseInt(res[0]),H=parseInt(res[1]);
+  var transition=document.getElementById('transition').value;
+  var padStart=parseFloat(document.getElementById('padStart').value);
+  var padEnd=parseFloat(document.getElementById('padEnd').value);
+  var fps=30;
+
+  try{
+    // Load audio
+    setProgress(5,'Loading audio...');
+    var audioURL=URL.createObjectURL(state.audio);
+    var audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    var audioBuffer=await fetch(audioURL).then(function(r){return r.arrayBuffer();}).then(function(ab){return audioCtx.decodeAudioData(ab);});
+    var totalDuration=audioBuffer.duration+padStart+padEnd;
+
+    // Load all images
+    setProgress(15,'Loading images...');
+    var imgEls=await Promise.all(state.images.map(function(f){
+      return new Promise(function(resolve){
+        var img=new Image();
+        img.onload=function(){resolve(img);};
+        img.src=URL.createObjectURL(f);
+      });
+    }));
+
+    // Build timing map: assign each image a start/end time
+    // Match SRT blocks to images. If counts differ, distribute evenly.
+    var timings=[];
+    var sc=state.srtBlocks,im=state.images;
+    var audioDuration=audioBuffer.duration;
+
+    if(sc.length===im.length){
+      // Perfect match — use SRT timestamps directly
+      for(var i=0;i<im.length;i++){
+        timings.push({
+          img:i,
+          start:sc[i].start+padStart,
+          end:(i<sc.length-1?sc[i+1].start:audioDuration)+padStart
+        });
+      }
+    } else if(sc.length>im.length){
+      // More SRT blocks than images — group SRT blocks per image
+      var groupSize=Math.ceil(sc.length/im.length);
+      for(var i=0;i<im.length;i++){
+        var firstBlock=sc[i*groupSize]||sc[sc.length-1];
+        var lastBlock=sc[Math.min((i+1)*groupSize,sc.length)-1];
+        timings.push({img:i,start:firstBlock.start+padStart,end:lastBlock.end+padStart});
+      }
+    } else {
+      // More images than SRT blocks — spread extra images evenly
+      var timePerImg=audioDuration/im.length;
+      for(var i=0;i<im.length;i++){
+        timings.push({img:i,start:i*timePerImg+padStart,end:(i+1)*timePerImg+padStart});
+      }
+    }
+
+    // Add outro hold to last image
+    if(timings.length>0)timings[timings.length-1].end+=padEnd;
+
+    // Canvas setup
+    var canvas=document.getElementById('canvas');
+    canvas.width=W;canvas.height=H;
+    var ctx=canvas.getContext('2d');
+
+    // MediaRecorder setup
+    setProgress(25,'Setting up video encoder...');
+    var stream=canvas.captureStream(fps);
+
+    // Add audio track
+    var dest=audioCtx.createMediaStreamDestination();
+    var source=audioCtx.createBufferSource();
+    source.buffer=audioBuffer;
+    source.connect(dest);
+    dest.stream.getAudioTracks().forEach(function(t){stream.addTrack(t);});
+
+    var mimeType='video/webm;codecs=vp9,opus';
+    if(!MediaRecorder.isTypeSupported(mimeType))mimeType='video/webm;codecs=vp8,opus';
+    if(!MediaRecorder.isTypeSupported(mimeType))mimeType='video/webm';
+
+    var chunks=[];
+    var recorder=new MediaRecorder(stream,{mimeType:mimeType,videoBitsPerSecond:8000000});
+    recorder.ondataavailable=function(e){if(e.data.size>0)chunks.push(e.data);};
+
+    await new Promise(function(resolve,reject){
+      recorder.onstop=resolve;
+      recorder.onerror=reject;
+
+      recorder.start(100);
+
+      // Start audio after padStart delay
+      setTimeout(function(){source.start(0);},padStart*1000);
+
+      // Animate frames
+      var startTime=performance.now();
+      var transitionDur=transition==='cut'?0:0.4;
+
+      function drawFrame(){
+        var elapsed=(performance.now()-startTime)/1000;
+        var progress=Math.min(elapsed/totalDuration,1);
+        setProgress(25+Math.floor(progress*65),'Rendering frames... '+Math.floor(progress*100)+'%');
+
+        // Find current image
+        var curIdx=0;
+        for(var i=0;i<timings.length;i++){
+          if(elapsed>=timings[i].start)curIdx=i;
+        }
+        var curTiming=timings[curIdx];
+        var curImg=imgEls[curTiming.img];
+        var nextImg=curIdx<timings.length-1?imgEls[timings[curIdx+1].img]:null;
+
+        // Draw background
+        ctx.fillStyle='#0f0e0c';
+        ctx.fillRect(0,0,W,H);
+
+        // Calculate image draw (cover fit)
+        function drawImgCover(img,alpha){
+          if(!img)return;
+          ctx.globalAlpha=alpha;
+          var scale=Math.max(W/img.width,H/img.height);
+          var sw=img.width*scale,sh=img.height*scale;
+          var sx=(W-sw)/2,sy=(H-sh)/2;
+          if(transition==='zoom'){
+            var zoomProgress=(elapsed-curTiming.start)/(curTiming.end-curTiming.start);
+            var zoom=1+zoomProgress*0.03;
+            ctx.save();
+            ctx.translate(W/2,H/2);ctx.scale(zoom,zoom);ctx.translate(-W/2,-H/2);
+            ctx.drawImage(img,sx,sy,sw,sh);
+            ctx.restore();
+          } else {
+            ctx.drawImage(img,sx,sy,sw,sh);
+          }
+          ctx.globalAlpha=1;
+        }
+
+        if(transition!=='cut'&&nextImg&&curTiming.end-elapsed<transitionDur){
+          var t=1-(curTiming.end-elapsed)/transitionDur;
+          drawImgCover(curImg,1);
+          drawImgCover(nextImg,t);
+        } else {
+          drawImgCover(curImg,1);
+        }
+
+        if(elapsed<totalDuration){
+          requestAnimationFrame(drawFrame);
+        } else {
+          recorder.stop();
+        }
+      }
+
+      requestAnimationFrame(drawFrame);
+    });
+
+    setProgress(95,'Packaging video file...');
+
+    var blob=new Blob(chunks,{type:mimeType});
+    var url=URL.createObjectURL(blob);
+    var sizeMB=(blob.size/1024/1024).toFixed(1);
+
+    document.getElementById('videoInfo').textContent=fmtTime(totalDuration)+' · '+sizeMB+' MB · '+W+'×'+H;
+    var dl=document.getElementById('downloadBtn');
+    dl.href=url;
+    dl.download='MusicIsEasy_video.webm';
+    document.getElementById('downloadWrap').style.display='block';
+
+    setProgress(100,'Done!');
+    setStatus('buildStatus','Video built successfully!','success');
+    prog.className='progress-wrap';
+
+  }catch(err){
+    setStatus('buildStatus','Error: '+err.message+'. Try a smaller resolution or fewer images.','error');
+    prog.className='progress-wrap';
+  }
+
+  btn.disabled=false;
+  btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Build Video';
+}
+
+function setProgress(pct,label){
+  document.getElementById('buildFill').style.width=pct+'%';
+  document.getElementById('buildLabel').textContent=label;
+}
+
+function fmtTime(s){
+  var m=Math.floor(s/60),sec=Math.floor(s%60);
+  return m+':'+(sec<10?'0':'')+sec;
+}
+
+function formatSize(bytes){
+  if(bytes>1024*1024)return(bytes/1024/1024).toFixed(1)+' MB';
+  return(bytes/1024).toFixed(0)+' KB';
+}
+
+function resetAll(){
+  state={audio:null,srtBlocks:[],images:[],ready:{audio:false,srt:false,img:false}};
+  ['audioList','srtList','imgGrid'].forEach(function(id){document.getElementById(id).innerHTML='';});
+  document.getElementById('imgGrid').style.display='none';
+  document.getElementById('srtPreview').style.display='none';
+  document.getElementById('buildSummary').style.display='none';
+  document.getElementById('downloadWrap').style.display='none';
+  document.getElementById('countWarning').className='warning-box';
+  ['audioStatus','srtStatus','imgStatus','buildStatus'].forEach(function(id){document.getElementById(id).className='status';});
+  document.getElementById('buildBtn').disabled=true;
+  [1,2,3].forEach(function(n){setStep(n,'');});
+  setStep(1,'active');setStep(4,'');
+  document.getElementById('buildProgress').className='progress-wrap';
+}
+</script>
+</body>
+</html>
