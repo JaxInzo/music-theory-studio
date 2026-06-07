@@ -144,12 +144,12 @@
       </div>
       <div class="grid2">
         <div class="field">
-          <label for="claudeKey">Anthropic API key — scripts &amp; scene detection</label>
+          <label for="claudeKey">Google Gemini API key — scripts &amp; scene detection</label>
           <div class="pw-wrap">
-            <input type="password" id="claudeKey" placeholder="sk-ant-..." oninput="saveKey('claude',this.value)">
+            <input type="password" id="claudeKey" placeholder="AIzaSy..." oninput="saveKey('claude',this.value)">
             <button class="pw-toggle" onclick="toggleKey('claudeKey','eye1')" aria-label="Toggle"><svg id="eye1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
           </div>
-          <p style="font-size:11px;color:var(--text3);margin-top:4px;"><a href="https://console.anthropic.com" target="_blank" style="color:var(--gold);text-decoration:none;">console.anthropic.com</a></p>
+          <p style="font-size:11px;color:var(--text3);margin-top:4px;"><a href="https://aistudio.google.com" target="_blank" style="color:var(--gold);text-decoration:none;">aistudio.google.com</a> — free</p>
         </div>
         <div class="field">
           <label for="hfKey">Hugging Face API key — image generation</label>
@@ -340,7 +340,7 @@
     </div>
     <div class="card">
       <div class="card-title">Data</div>
-      <p style="font-size:13px;color:var(--text3);margin-bottom:14px;">All data stored locally. API keys never leave your browser except to go directly to Anthropic and Hugging Face.</p>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px;">All data stored locally. API keys never leave your browser except to go directly to Google and Hugging Face.</p>
       <button class="btn" onclick="exportData()" style="margin-right:8px;">Export backup</button>
       <button class="btn" onclick="clearAllData()" style="color:var(--red);border-color:rgba(224,85,85,0.3);">Clear all data</button>
     </div>
@@ -449,16 +449,18 @@ function setGenProgress(pct,label){
 // ============================================================
 // CLAUDE API
 // ============================================================
-async function callClaude(prompt,maxTokens){
+async function callGemini(prompt,maxTokens){
   var key=document.getElementById('claudeKey').value.trim();
-  if(!key)throw new Error('Please enter your Anthropic API key.');
-  var r=await fetch('https://api.anthropic.com/v1/messages',{
+  if(!key)throw new Error('Please enter your Gemini API key.');
+  var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens||2000,messages:[{role:'user',content:prompt}]})
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens||2000}})
   });
-  if(!r.ok){var e=await r.json();throw new Error(e.error&&e.error.message?e.error.message:'Claude API error '+r.status);}
-  var d=await r.json();return d.content[0].text;
+  if(!r.ok){var e=await r.json();throw new Error(e.error&&e.error.message?e.error.message:'Gemini API error '+r.status);}
+  var d=await r.json();
+  if(!d.candidates||!d.candidates[0])throw new Error('No response from Gemini. You may have hit your daily quota — try again later.');
+  return d.candidates[0].content.parts[0].text;
 }
 
 // ============================================================
@@ -540,7 +542,7 @@ async function generateScript(){
   var prompt='Write a spoken YouTube video script about music theory for '+audience+'. Channel: "'+channelName+'".'+tagClause+' Topic: '+topic+'. Tone: '+tone+'. Length: '+length+'. Language complexity: '+complexity+'.'+avoidClause+'\n\nSTRICT RULES:\n- Write ONLY the spoken narration as one continuous flowing script.\n- Natural spoken paragraphs — NO scene numbers, NO headings, NO bullet points, NO markdown.\n- Opening paragraph: warmly welcome viewers to "'+channelName+'" and introduce the topic.\n- Closing paragraph: thank viewers for watching, ask them to like and subscribe to "'+channelName+'", tease the next video.\n- Short conversational sentences — this will be read aloud.\n- Plain flowing text only from start to finish.';
 
   try{
-    var text=await callClaude(prompt,3000);
+    var text=await callGemini(prompt,3000);
     currentScript={topic:topic,script:text,tone:tone,date:new Date().toISOString()};
     saveToHistory(currentScript);
     setGenProgress(100,'Done!');
@@ -635,7 +637,7 @@ async function produceVideo(){
 
   var claudeKey=document.getElementById('claudeKey').value.trim();
   var hfKey=document.getElementById('hfKey').value.trim();
-  if(!claudeKey){setStatus('produceStatus','Please enter your Anthropic API key in Tab 1.','error');return;}
+  if(!claudeKey){setStatus('produceStatus','Please enter your Gemini API key in Tab 1.','error');return;}
   if(!hfKey){setStatus('produceStatus','Please enter your Hugging Face API key in Tab 1.','error');return;}
 
   var artKey=document.getElementById('artStyle').value;
@@ -662,7 +664,7 @@ async function produceVideo(){
 
     var scenePrompt='You have a generated script and a Whisper transcription of the recorded voiceover. Your job is to divide the transcription into natural scenes for a music theory YouTube video.\n\nGENERATED SCRIPT:\n'+currentScript.script+'\n\nWHISPER TRANSCRIPTION:\n'+transcription+'\n\nINSTRUCTIONS:\n- Divide the transcription into natural scenes at sentence boundaries\n- Each scene should be 1-2 complete sentences\n- Aim for scenes that are 4-10 seconds each when spoken\n- Cross-reference with the script to ensure accuracy and correct any transcription errors\n- Output ONLY a JSON array like this, no other text:\n[{"text":"scene text here"},{"text":"next scene text here"}]\n- Minimum 15 scenes, maximum 50 scenes depending on audio length\n- Do not include any markdown, code fences, or explanation — pure JSON array only';
 
-    var scenesRaw=await callClaude(scenePrompt,4000);
+    var scenesRaw=await callGemini(scenePrompt,4000);
     // Strip any markdown fences just in case
     scenesRaw=scenesRaw.replace(/```json|```/g,'').trim();
     var scenesData=JSON.parse(scenesRaw);
@@ -675,7 +677,7 @@ async function produceVideo(){
     var promptsText=currentScenes.map(function(s,i){return'Scene '+(i+1)+': '+s.text;}).join('\n');
     var promptInstr=HAND_DRAWN_PREFIX+ACCURACY_RULES+'\n\nChannel: "'+channelName+'". Style: '+styleStr+'\n\nFor each scene generate exactly one image prompt. Rules:\n1. Start with: "16:9 widescreen hand-drawn music theory sketch:"\n2. One specific visual concept directly illustrating what is spoken\n3. Apply accuracy rules above strictly for any music notation\n4. Style: '+styleStr+'\n5. Under 55 words\n6. No text or labels in the image\n7. Landscape 16:9 widescreen always\n\nOutput ONLY numbered prompts:\n1. [prompt]\n2. [prompt]\n\nScenes:\n'+promptsText;
 
-    var promptsRaw=await callClaude(promptInstr,5000);
+    var promptsRaw=await callGemini(promptInstr,5000);
     var promptLines=promptsRaw.split('\n').filter(function(l){return /^\d+\./.test(l.trim());});
     var prompts=promptLines.map(function(l){return l.replace(/^\d+\.\s*/,'').trim();});
     while(prompts.length<currentScenes.length)prompts.push('16:9 widescreen hand-drawn music theory educational sketch: simple musical concept illustration. '+styleStr);
