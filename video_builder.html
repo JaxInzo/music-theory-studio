@@ -141,7 +141,7 @@
       <div class="step-num" id="num1">1</div>
       <div>
         <div class="step-title">Voiceover Audio</div>
-        <div class="step-sub">Upload your recorded MP3 or WAV file</div>
+        <div class="step-sub">Upload your MP3 or WAV — noise removal, compression and volume balancing applied automatically</div>
       </div>
     </div>
     <div class="drop-zone" id="audioZone" onclick="document.getElementById('audioInput').click()" ondragover="onDrag(event,'audioZone')" ondragleave="offDrag('audioZone')" ondrop="onDrop(event,'audio')">
@@ -482,11 +482,99 @@ async function buildVideo(){
   var fps=30;
 
   try{
-    // Load audio
+    // Load and process audio
     setProgress(5,'Loading audio...');
     var audioURL=URL.createObjectURL(state.audio);
     var audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    var audioBuffer=await fetch(audioURL).then(function(r){return r.arrayBuffer();}).then(function(ab){return audioCtx.decodeAudioData(ab);});
+    var rawBuffer=await fetch(audioURL).then(function(r){return r.arrayBuffer();}).then(function(ab){return audioCtx.decodeAudioData(ab);});
+
+    setProgress(12,'Processing audio — cleaning noise and balancing volume...');
+
+    // ---- AUDIO PROCESSING PIPELINE ----
+    // We process the raw buffer offline into a clean buffer before encoding.
+    // Steps: noise gate → compression → normalization
+
+    var sampleRate=rawBuffer.sampleRate;
+    var numChannels=rawBuffer.numberOfChannels;
+    var length=rawBuffer.length;
+    var offlineCtx=new OfflineAudioContext(numChannels,length,sampleRate);
+
+    var sourceNode=offlineCtx.createBufferSource();
+    sourceNode.buffer=rawBuffer;
+
+    // 1. HIGH PASS FILTER — removes low-frequency rumble and mic handling noise
+    var highpass=offlineCtx.createBiquadFilter();
+    highpass.type='highpass';
+    highpass.frequency.value=100; // cut everything below 100Hz
+
+    // 2. VOICE PRESENCE BOOST — gently lifts the 2kHz-5kHz range where voice clarity lives
+    var presence=offlineCtx.createBiquadFilter();
+    presence.type='peaking';
+    presence.frequency.value=3000;
+    presence.Q.value=0.8;
+    presence.gain.value=3; // +3dB gentle boost
+
+    // 3. DYNAMICS COMPRESSOR — evens out volume, reduces loud peaks, brings up quiet parts
+    // This handles breath inconsistency and uneven speaking volume
+    var compressor=offlineCtx.createDynamicsCompressor();
+    compressor.threshold.value=-24;  // start compressing at -24dB
+    compressor.knee.value=8;         // soft knee for natural sound
+    compressor.ratio.value=4;        // 4:1 ratio — firm but not aggressive
+    compressor.attack.value=0.003;   // 3ms attack — fast enough to catch peaks
+    compressor.release.value=0.25;   // 250ms release — smooth and natural
+
+    // 4. OUTPUT GAIN — bring the overall level back up after compression
+    var outputGain=offlineCtx.createGain();
+    outputGain.gain.value=1.4; // compensate for compression gain reduction
+
+    // Chain: source → highpass → presence → compressor → gain → output
+    sourceNode.connect(highpass);
+    highpass.connect(presence);
+    presence.connect(compressor);
+    compressor.connect(outputGain);
+    outputGain.connect(offlineCtx.destination);
+    sourceNode.start(0);
+
+    // Render the processed audio offline
+    var processedBuffer=await offlineCtx.startRendering();
+
+    // 5. NORMALIZE — find peak amplitude and scale to 90% max so no clipping
+    var maxAmp=0;
+    for(var ch=0;ch<processedBuffer.numberOfChannels;ch++){
+      var data=processedBuffer.getChannelData(ch);
+      for(var s=0;s<data.length;s++){
+        var abs=Math.abs(data[s]);
+        if(abs>maxAmp)maxAmp=abs;
+      }
+    }
+    if(maxAmp>0&&maxAmp<0.9){
+      var normFactor=0.9/maxAmp;
+      for(var ch=0;ch<processedBuffer.numberOfChannels;ch++){
+        var data=processedBuffer.getChannelData(ch);
+        for(var s=0;s<data.length;s++)data[s]*=normFactor;
+      }
+    }
+
+    // 6. NOISE GATE — silence any samples below threshold (removes hiss and breath noise between words)
+    // We use a simple envelope follower with hold time to avoid cutting mid-word
+    var gateThreshold=0.012; // amplitude threshold — below this = silence
+    var holdSamples=Math.floor(sampleRate*0.08); // hold gate open 80ms after signal drops
+    for(var ch=0;ch<processedBuffer.numberOfChannels;ch++){
+      var data=processedBuffer.getChannelData(ch);
+      var holdCount=0;
+      for(var s=0;s<data.length;s++){
+        if(Math.abs(data[s])>gateThreshold){
+          holdCount=holdSamples; // reset hold timer
+        } else if(holdCount>0){
+          holdCount--; // counting down hold
+        } else {
+          data[s]=0; // gate closed — silence
+        }
+      }
+    }
+
+    var audioBuffer=processedBuffer;
+    setProgress(22,'Audio processed — noise removed, volume balanced');
     var totalDuration=audioBuffer.duration+padStart+padEnd;
 
     // Load all images
@@ -542,11 +630,15 @@ async function buildVideo(){
     setProgress(25,'Setting up video encoder...');
     var stream=canvas.captureStream(fps);
 
-    // Add audio track
+    // Add audio track using processed buffer
     var dest=audioCtx.createMediaStreamDestination();
     var source=audioCtx.createBufferSource();
     source.buffer=audioBuffer;
-    source.connect(dest);
+    // Play through a final gain node
+    var finalGain=audioCtx.createGain();
+    finalGain.gain.value=1.0;
+    source.connect(finalGain);
+    finalGain.connect(dest);
     dest.stream.getAudioTracks().forEach(function(t){stream.addTrack(t);});
 
     var mimeType='video/webm;codecs=vp9,opus';
