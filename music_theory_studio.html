@@ -676,6 +676,43 @@ function parseSRT(text){
   return blocks;
 }
 
+function cleanAndMergeSRT(blocks){
+  // Step 1 — Strip TurboScribe watermark from any block
+  var watermarkRe=/\(Transcribed by TurboScribe[^)]*\)\s*/gi;
+  blocks=blocks.map(function(b){
+    return {num:b.num,start:b.start,end:b.end,text:b.text.replace(watermarkRe,'').trim()};
+  }).filter(function(b){return b.text.length>0;});
+
+  // Step 2 — Merge blocks that are mid-sentence into the next block
+  // A block is mid-sentence if its text does NOT end with . ? ! or ...
+  var merged=[];
+  var i=0;
+  while(i<blocks.length){
+    var cur=blocks[i];
+    var text=cur.text;
+    var start=cur.start;
+    var end=cur.end;
+
+    // Keep merging forward while this block ends mid-sentence
+    while(i+1<blocks.length && !endsWithPunctuation(text)){
+      i++;
+      text=text+' '+blocks[i].text;
+      end=blocks[i].end;
+    }
+
+    merged.push({num:merged.length+1,start:start,end:end,text:text.trim()});
+    i++;
+  }
+
+  return merged;
+}
+
+function endsWithPunctuation(text){
+  // Returns true if text ends with a sentence-ending punctuation mark
+  var t=text.trim();
+  return /[.?!]$/.test(t)||/\.\.\.$/.test(t);
+}
+
 function fmtTime(s){var m=Math.floor(s/60),sec=Math.floor(s%60);return m+':'+(sec<10?'0':'')+sec;}
 
 // ===================== SRT UPLOAD =====================
@@ -688,25 +725,34 @@ function loadSRT(files){
   var file=files[0];
   var reader=new FileReader();
   reader.onload=function(e){
-    var blocks=parseSRT(e.target.result);
-    if(blocks.length===0){setStatus('srtStatus','Could not read SRT file. Make sure it is a valid SRT from TurboScribe.','error');return;}
+    var rawBlocks=parseSRT(e.target.result);
+    if(rawBlocks.length===0){setStatus('srtStatus','Could not read SRT file. Make sure it is a valid SRT from TurboScribe.','error');return;}
+
+    // Clean watermark and merge split sentences
+    var blocks=cleanAndMergeSRT(rawBlocks);
+    var mergedCount=rawBlocks.length-blocks.length;
     currentSRTBlocks=blocks;
 
     document.getElementById('srtFileInfo').style.display='block';
-    document.getElementById('srtFileInfo').innerHTML='<div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:10px 14px;">'
-      +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--green)"><polyline points="20 6 9 17 4 12"/></svg>'
+    document.getElementById('srtFileInfo').innerHTML='<div style="background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:10px 14px;">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
+      +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--green);flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>'
       +'<span style="font-size:13px;color:var(--text2);">'+file.name+'</span>'
-      +'<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:var(--green-bg);color:var(--green);border:0.5px solid rgba(76,175,130,0.2);">'+blocks.length+' blocks</span>'
+      +'<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:var(--green-bg);color:var(--green);border:0.5px solid rgba(76,175,130,0.2);">'+blocks.length+' scenes</span>'
+      +'</div>'
+      +'<div style="font-size:12px;color:var(--text3);">'
+      +(mergedCount>0?'✓ Stripped TurboScribe watermark &nbsp;·&nbsp; Merged '+mergedCount+' split blocks into complete sentences':'✓ All blocks are complete sentences')
+      +'</div>'
       +'</div>';
 
-    // Preview first 6 blocks
+    // Preview first 6 merged blocks
     var preview=document.getElementById('srtBlockPreview');
     preview.innerHTML=blocks.slice(0,6).map(function(b){
       return'<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);">'
         +'<span style="font-size:11px;color:var(--gold);white-space:nowrap;min-width:70px;">'+fmtTime(b.start)+' → '+fmtTime(b.end)+'</span>'
         +'<span style="font-size:13px;color:var(--text2);">'+escHtml(b.text)+'</span>'
         +'</div>';
-    }).join('')+(blocks.length>6?'<div style="font-size:12px;color:var(--text3);padding:8px 0;">...and '+(blocks.length-6)+' more blocks</div>':'');
+    }).join('')+(blocks.length>6?'<div style="font-size:12px;color:var(--text3);padding:8px 0;">...and '+(blocks.length-6)+' more scenes</div>':'');
 
     hideStatus('srtStatus');
     document.getElementById('srtPromptsSection').style.display='block';
