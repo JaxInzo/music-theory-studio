@@ -356,11 +356,11 @@ async function transcribeAudio(file){
   var key=document.getElementById('groqKey').value.trim();
   if(!key)throw new Error('Please enter your Groq API key.');
 
-  // Groq accepts multipart/form-data — works fine from browser
   var fd=new FormData();
   fd.append('file',file,file.name||'audio.mp3');
   fd.append('model','whisper-large-v3');
-  fd.append('response_format','json');
+  fd.append('response_format','verbose_json');
+  fd.append('timestamp_granularities[]','segment');
   fd.append('language','en');
 
   var r=await fetch('https://api.groq.com/openai/v1/audio/transcriptions',{
@@ -376,16 +376,64 @@ async function transcribeAudio(file){
   }
 
   var d=await r.json();
-  if(d.text)return d.text;
+  // Return both full text and segments with timestamps
+  if(d.segments&&d.segments.length>0){
+    return {
+      text: d.text||'',
+      segments: d.segments.map(function(s){
+        return {start:s.start, end:s.end, text:s.text.trim()};
+      })
+    };
+  }
+  if(d.text)return {text:d.text, segments:null};
   throw new Error('Unexpected Groq response: '+JSON.stringify(d).slice(0,120));
 }
 
 // ============================================================
 // GEMINI — EDIT DECISION
 // ============================================================
-async function getEditDecisions(transcription,script){
+async function getEditDecisions(transcriptionData,script){
   var key=document.getElementById('geminiKey').value.trim();
-  var prompt='You are an audio editor for a YouTube channel called MusicIsEasy. You have a raw voiceover transcription that contains mistakes, repeated phrases, and retakes. Your job is to decide which segments to keep and which to cut.\n\nTHE SCRIPT (what should be said):\n'+script+'\n\nRAW TRANSCRIPTION (what was actually recorded, including mistakes):\n'+transcription+'\n\nINSTRUCTIONS:\n- Compare the transcription against the script\n- Identify every repeated phrase, false start, mistake and retake\n- For repeated attempts at the same sentence: keep the LAST and BEST version, cut all earlier attempts\n- Score each take: prefer the one closest to the script wording, fewest filler words (um, uh, like, you know), most complete\n- If two takes are equal quality, always keep the LATER one\n- Trim long silences between sentences (more than 1.5 seconds) down to 0.4 seconds\n- Keep natural pauses within sentences\n\nOutput ONLY a valid JSON array. No markdown, no explanation, no code fences. Pure JSON only:\n[\n  {"segment": "the text of this segment", "keep": true, "reason": "clean take matching script", "isBest": true},\n  {"segment": "the repeated or mistaken text", "keep": false, "reason": "earlier attempt, repeated below", "isBest": false}\n]\n\nEvery segment of the transcription must appear in the output. Be thorough.';
+  var transcription=typeof transcriptionData==='string'?transcriptionData:transcriptionData.text;
+  var segments=typeof transcriptionData==='object'?transcriptionData.segments:null;
+
+  var prompt='You are an audio editor for a YouTube channel called MusicIsEasy. You have a raw voiceover transcription that contains mistakes, repeated phrases, and retakes. Your job is to decide which segments to keep and which to cut.\n\nTHE SCRIPT (what should be said):\n'+script+'\n\nRAW TRANSCRIPTION SEGMENTS (with timestamps):\n'+(segments?segments.map(function(s,i){return i+': ['+s.start.toFixed(2)+'s-'+s.end.toFixed(2)+'s] '+s.text;}).join('\n'):transcription)+'\n\nINSTRUCTIONS:\n- Compare the transcription against the script\n- Identify every repeated phrase, false start, mistake and retake\n- For repeated attempts at the same sentence: keep the LAST and BEST version, cut all earlier attempts\n- Score each take: prefer the one closest to the script wording, fewest filler words (um, uh, like, you know), most complete\n- If two takes are equal quality, always keep the LATER one\n- Keep natural pauses within sentences\n\nIMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation, no code fences. Pure JSON:\n[\n  {"index": 0, "segment": "the text", "keep": true, "reason": "clean take matching script", "isBest": true},\n  {"index": 1, "segment": "repeated text", "keep": false, "reason": "earlier attempt, repeated below", "isBest": false}\n]\n\nInclude an "index" field matching the segment number above. Every segment must appear.';
+
+  var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:4000}})
+  });
+  if(!r.ok){var e=await r.json();throw new Error(e.error&&e.error.message?e.error.message:'Gemini error '+r.status);}
+  var d=await r.json();
+  if(!d.candidates||!d.candidates[0])throw new Error('No response from Gemini. You may have hit your daily quota.');
+  var raw=d.candidates[0].content.parts[0].text;
+  raw=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
+  var start=raw.indexOf('[');
+  var end=raw.lastIndexOf(']');
+  if(start===-1||end===-1)throw new Error('Gemini returned an unexpected format — please try again.');
+  raw=raw.slice(start,end+1);
+  raw=raw.replace(/,\s*\]/g,']').replace(/,\s*\}/g,'}');
+
+  try{
+    var decisions=JSON.parse(raw);
+    // Attach real timestamps to decisions if we have them
+    if(segments&&decisions){
+      decisions=decisions.map(function(dec){
+        var idx=dec.index;
+        if(idx!==undefined&&segments[idx]){
+          dec.startTime=segments[idx].start;
+          dec.endTime=segments[idx].end;
+        }
+        return dec;
+      });
+    }
+    return {decisions:decisions, segments:segments};
+  }catch(parseErr){
+    raw=raw.replace(/'/g,'"');
+    try{return {decisions:JSON.parse(raw), segments:segments};}
+    catch(e2){throw new Error('Could not parse Gemini response — please try again.');}
+  }
+}
 
   var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{
     method:'POST',headers:{'Content-Type':'application/json'},
@@ -396,19 +444,11 @@ async function getEditDecisions(transcription,script){
   if(!d.candidates||!d.candidates[0])throw new Error('No response from Gemini. You may have hit your daily quota.');
   var raw=d.candidates[0].content.parts[0].text;
 
-  // Log raw response for debugging
-  console.log('Gemini raw response:',raw.slice(0,500));
-
   // Robustly extract JSON array from response
   raw=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
   var start=raw.indexOf('[');
   var end=raw.lastIndexOf(']');
-
-  // If no array found, show first 300 chars of response to help diagnose
-  if(start===-1||end===-1){
-    throw new Error('Gemini returned unexpected format. First 300 chars: '+raw.slice(0,300));
-  }
-
+  if(start===-1||end===-1)throw new Error('Gemini returned an unexpected format — please try again.');
   raw=raw.slice(start,end+1);
   raw=raw.replace(/,\s*\]/g,']').replace(/,\s*\}/g,'}');
 
@@ -419,7 +459,7 @@ async function getEditDecisions(transcription,script){
     try{
       return JSON.parse(raw);
     }catch(e2){
-      throw new Error('Could not parse Gemini response. Raw: '+raw.slice(0,300));
+      throw new Error('Could not parse Gemini response — please try again.');
     }
   }
 }
@@ -427,67 +467,95 @@ async function getEditDecisions(transcription,script){
 // ============================================================
 // AUDIO EDITING — build clean buffer from decisions
 // ============================================================
-async function buildCleanAudio(decisions,rawBuffer){
+async function buildCleanAudio(result,rawBuffer){
+  var decisions=result.decisions;
+  var segments=result.segments;
   var sampleRate=rawBuffer.sampleRate;
   var numChannels=rawBuffer.numberOfChannels;
   var totalSamples=rawBuffer.length;
-
-  // Map decisions to approximate time positions by proportional text length
-  var fullText=decisions.map(function(d){return d.segment;}).join(' ');
-  var totalChars=fullText.length;
   var totalDuration=rawBuffer.duration;
 
   var keepSegments=[];
-  var cursor=0;
 
-  decisions.forEach(function(d){
-    var ratio=d.segment.length/totalChars;
-    var duration=ratio*totalDuration;
-    var start=cursor;
-    var end=cursor+duration;
+  if(segments&&segments.length>0&&decisions[0]&&decisions[0].startTime!==undefined){
+    // USE REAL TIMESTAMPS from Whisper
+    decisions.forEach(function(d){
+      if(d.keep&&d.startTime!==undefined&&d.endTime!==undefined){
+        // Add small buffer around each segment to avoid cutting off word edges
+        var start=Math.max(0,d.startTime-0.05);
+        var end=Math.min(totalDuration,d.endTime+0.08);
+        keepSegments.push({start:start,end:end});
+      }
+    });
+  } else {
+    // FALLBACK: proportional estimate if no timestamps
+    var fullText=decisions.map(function(d){return d.segment||'';}).join(' ');
+    var totalChars=Math.max(fullText.length,1);
+    var cursor=0;
+    decisions.forEach(function(d){
+      var ratio=(d.segment||'').length/totalChars;
+      var duration=ratio*totalDuration;
+      if(d.keep)keepSegments.push({start:cursor,end:cursor+duration});
+      cursor+=duration;
+    });
+  }
 
-    if(d.keep){
-      // Add a small 0.4s pause between kept segments for natural flow
-      keepSegments.push({start:start,end:end});
+  if(keepSegments.length===0)throw new Error('No segments marked to keep — something went wrong with the edit decisions.');
+
+  // Merge segments that are very close together (within 0.3s) to avoid tiny gaps
+  var merged=[];
+  keepSegments.sort(function(a,b){return a.start-b.start;});
+  keepSegments.forEach(function(seg){
+    if(merged.length>0&&seg.start-merged[merged.length-1].end<0.3){
+      merged[merged.length-1].end=Math.max(merged[merged.length-1].end,seg.end);
+    } else {
+      merged.push({start:seg.start,end:seg.end});
     }
-    cursor=end;
   });
 
-  // Calculate total output length
-  var gapSamples=Math.floor(0.4*sampleRate);
-  var totalOutSamples=keepSegments.reduce(function(sum,seg){
+  // Calculate output length with 0.35s gaps between segments
+  var gapSamples=Math.floor(0.35*sampleRate);
+  var totalOutSamples=merged.reduce(function(sum,seg){
     return sum+Math.floor((seg.end-seg.start)*sampleRate)+gapSamples;
   },0);
+  if(totalOutSamples<=0)throw new Error('Output audio would be empty.');
 
   // Build output buffer
-  var outCtx=new OfflineAudioContext(numChannels,totalOutSamples,sampleRate);
-  var outBuffer=outCtx.createBuffer(numChannels,totalOutSamples,sampleRate);
-
+  var outBuffer=new AudioBuffer({numberOfChannels:numChannels,length:totalOutSamples,sampleRate:sampleRate});
   var writePos=0;
-  keepSegments.forEach(function(seg){
+
+  merged.forEach(function(seg){
     var startSample=Math.floor(seg.start*sampleRate);
     var endSample=Math.min(Math.floor(seg.end*sampleRate),totalSamples);
     var segLen=endSample-startSample;
+    if(segLen<=0)return;
 
     for(var ch=0;ch<numChannels;ch++){
       var inData=rawBuffer.getChannelData(ch);
       var outData=outBuffer.getChannelData(ch);
+
+      // Apply 10ms fade in/out to avoid clicks at cut points
+      var fadeSamples=Math.min(480,segLen/4);
       for(var s=0;s<segLen&&writePos+s<totalOutSamples;s++){
-        outData[writePos+s]=inData[startSample+s]||0;
+        var sample=inData[startSample+s]||0;
+        // Fade in
+        if(s<fadeSamples)sample*=(s/fadeSamples);
+        // Fade out
+        if(s>segLen-fadeSamples)sample*=((segLen-s)/fadeSamples);
+        outData[writePos+s]=sample;
       }
     }
     writePos+=segLen+gapSamples;
   });
 
-  // Apply the same audio processing as the Video Builder
   // Normalize
   var maxAmp=0;
   for(var ch=0;ch<outBuffer.numberOfChannels;ch++){
     var d=outBuffer.getChannelData(ch);
     for(var s=0;s<d.length;s++){var abs=Math.abs(d[s]);if(abs>maxAmp)maxAmp=abs;}
   }
-  if(maxAmp>0&&maxAmp<0.9){
-    var nf=0.9/maxAmp;
+  if(maxAmp>0&&maxAmp<0.88){
+    var nf=0.88/maxAmp;
     for(var ch=0;ch<outBuffer.numberOfChannels;ch++){
       var d=outBuffer.getChannelData(ch);
       for(var s=0;s<d.length;s++)d[s]*=nf;
@@ -498,8 +566,7 @@ async function buildCleanAudio(decisions,rawBuffer){
   var gateThreshold=0.012;
   var holdSamples=Math.floor(sampleRate*0.08);
   for(var ch=0;ch<outBuffer.numberOfChannels;ch++){
-    var d=outBuffer.getChannelData(ch);
-    var hold=0;
+    var d=outBuffer.getChannelData(ch);var hold=0;
     for(var s=0;s<d.length;s++){
       if(Math.abs(d[s])>gateThreshold){hold=holdSamples;}
       else if(hold>0){hold--;}
@@ -554,23 +621,25 @@ async function cleanAudio(){
   hideStatus();
 
   try{
-    // Step 1: Transcribe
-    setProgress(8,'Step 1 of 3 — Transcribing with Whisper (this may take a few minutes, you can leave this running)...');
-    var transcription=await transcribeAudio(audioFile);
+    // Step 1: Transcribe with timestamps
+    setProgress(8,'Step 1 of 3 — Transcribing with Whisper via Groq (getting precise timestamps)...');
+    var transcriptionData=await transcribeAudio(audioFile);
+    var transcriptionText=typeof transcriptionData==='string'?transcriptionData:transcriptionData.text;
+    var hasTimestamps=transcriptionData.segments&&transcriptionData.segments.length>0;
 
     // Step 2: Get edit decisions from Gemini
-    setProgress(45,'Step 2 of 3 — Analysing mistakes and selecting best takes with Gemini...');
-    var decisions=await getEditDecisions(transcription,script);
+    setProgress(45,'Step 2 of 3 — Analysing mistakes against script'+(hasTimestamps?' with precise timestamps':'')+'...');
+    var result=await getEditDecisions(transcriptionData,script);
 
-    // Step 3: Build clean audio
-    setProgress(75,'Step 3 of 3 — Cutting mistakes and building clean audio file...');
-    cleanedBuffer=await buildCleanAudio(decisions,audioBuffer);
+    // Step 3: Build clean audio using real timestamps
+    setProgress(75,'Step 3 of 3 — Cutting at exact positions and building clean audio...');
+    cleanedBuffer=await buildCleanAudio(result,audioBuffer);
 
     setProgress(100,'Done!');
     setTimeout(hideProgress,800);
 
     // Render results
-    renderResults(decisions,transcription);
+    renderResults(result.decisions,transcriptionText);
     setStatus('Audio cleaned successfully! Review the edit decisions below, then download.','success');
 
   }catch(err){
