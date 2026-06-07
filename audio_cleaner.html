@@ -394,8 +394,30 @@ async function getEditDecisions(transcription,script){
   if(!r.ok){var e=await r.json();throw new Error(e.error&&e.error.message?e.error.message:'Gemini error '+r.status);}
   var d=await r.json();
   if(!d.candidates||!d.candidates[0])throw new Error('No response from Gemini. You may have hit your daily quota.');
-  var raw=d.candidates[0].content.parts[0].text.replace(/```json|```/g,'').trim();
-  return JSON.parse(raw);
+  var raw=d.candidates[0].content.parts[0].text;
+
+  // Robustly extract JSON array from response
+  // Strip markdown fences
+  raw=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
+  // Find the first [ and last ] to extract just the array
+  var start=raw.indexOf('[');
+  var end=raw.lastIndexOf(']');
+  if(start===-1||end===-1)throw new Error('Gemini did not return a JSON array. Try again.');
+  raw=raw.slice(start,end+1);
+  // Fix common Gemini JSON issues: trailing commas before ] or }
+  raw=raw.replace(/,\s*\]/g,']').replace(/,\s*\}/g,'}');
+
+  try{
+    return JSON.parse(raw);
+  }catch(parseErr){
+    // Last resort: try to fix single quotes
+    raw=raw.replace(/'/g,'"');
+    try{
+      return JSON.parse(raw);
+    }catch(e2){
+      throw new Error('Could not parse Gemini response as JSON. Error at: '+parseErr.message+'. Try running again.');
+    }
+  }
 }
 
 // ============================================================
