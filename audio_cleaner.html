@@ -331,7 +331,7 @@ function checkReady(){
   var hasScript=document.getElementById('scriptText').value.trim().length>20;
   var hasGemini=document.getElementById('geminiKey').value.trim().length>5;
   var hasGroq=document.getElementById('groqKey').value.trim().length>5;
-  document.getElementById('cleanBtn').disabled=!(hasAudio&&hasScript&&hasGemini&&hasHF);
+  document.getElementById('cleanBtn').disabled=!(hasAudio&&hasScript&&hasGemini&&hasGroq);
 }
 
 document.getElementById('geminiKey').addEventListener('input',checkReady);
