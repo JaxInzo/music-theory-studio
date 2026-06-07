@@ -354,18 +354,45 @@ function hideProgress(){document.getElementById('mainProgress').className='progr
 // ============================================================
 async function transcribeAudio(file){
   var key=document.getElementById('hfKey').value.trim();
-  var fd=new FormData();fd.append('file',file);
-  var r=await fetch('https://api-inference.huggingface.co/models/openai/whisper-large-v3',{
-    method:'POST',headers:{'Authorization':'Bearer '+key},body:fd
+
+  // Convert file to base64 for the API
+  var arrayBuf=await file.arrayBuffer();
+  var bytes=new Uint8Array(arrayBuf);
+  var binary='';
+  for(var i=0;i<bytes.byteLength;i++)binary+=String.fromCharCode(bytes[i]);
+  var base64=btoa(binary);
+
+  // Try new inference providers endpoint first
+  var r=await fetch('https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
+    body:JSON.stringify({inputs:base64})
   });
+
+  // Fallback to legacy endpoint if new one fails
+  if(!r.ok){
+    var fd=new FormData();fd.append('file',file);
+    r=await fetch('https://api-inference.huggingface.co/models/openai/whisper-large-v3',{
+      method:'POST',headers:{'Authorization':'Bearer '+key},body:fd
+    });
+  }
+
   if(!r.ok){
     var txt=await r.text();
-    if(r.status===503){await sleep(25000);r=await fetch('https://api-inference.huggingface.co/models/openai/whisper-large-v3',{method:'POST',headers:{'Authorization':'Bearer '+key},body:fd});}
-    if(!r.ok)throw new Error('Transcription failed. Model may still be loading — please try again in 1 minute.');
+    if(r.status===503){
+      await sleep(25000);
+      var fd2=new FormData();fd2.append('file',file);
+      r=await fetch('https://api-inference.huggingface.co/models/openai/whisper-large-v3',{
+        method:'POST',headers:{'Authorization':'Bearer '+key},body:fd2
+      });
+    }
+    if(!r.ok)throw new Error('Transcription failed ('+r.status+'). Model may still be loading — please wait 1 minute and try again.');
   }
+
   var d=await r.json();
   if(d.text)return d.text;
-  throw new Error('Unexpected transcription response: '+JSON.stringify(d).slice(0,100));
+  if(Array.isArray(d)&&d[0]&&d[0].text)return d.map(function(x){return x.text;}).join(' ');
+  throw new Error('Unexpected transcription response: '+JSON.stringify(d).slice(0,120));
 }
 
 // ============================================================
