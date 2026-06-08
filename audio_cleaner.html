@@ -441,7 +441,13 @@ function buildCleanBuffer(decisions, rawBuf) {
     }
   });
 
-  console.log('Merged into ' + merged.length + ' contiguous segments');
+  // Remove any isolated short segments under 0.5s — these are artifacts from cut audio leaking through
+  merged = merged.filter(function(seg) {
+    var dur = seg.end - seg.start;
+    return dur >= 0.5;
+  });
+
+  console.log('After filtering short artifacts: ' + merged.length + ' segments remaining');
   merged.forEach(function(s) { console.log('  KEEP [' + s.start.toFixed(1) + 's-' + s.end.toFixed(1) + 's]: ' + s.text.slice(0,60)); });
 
   // Variable natural gaps between segments
@@ -510,19 +516,34 @@ function buildCleanBuffer(decisions, rawBuf) {
     }
   }
 
-  // NO noise gate — it clips sibilants and word endings
-  // The recording is clean enough without it
-  // We only apply a very gentle high-pass to remove low rumble
-  var hpPrev = new Array(ch).fill(0);
-  var hpAlpha = 0.995; // very gentle — only removes DC offset and sub-bass rumble
-  for (var c = 0; c < outBuf.numberOfChannels; c++) {
-    var d = outBuf.getChannelData(c);
-    var prev = 0;
-    for (var i = 0; i < d.length; i++) {
-      var filtered = hpAlpha * (prev + d[i] - (i > 0 ? outBuf.getChannelData(c)[i-1] : 0));
-      prev = filtered;
-      d[i] = filtered;
+  // Targeted silence in gaps between segments only
+  // We track where each segment ends and the next begins,
+  // and silence only the gap region with a short crossfade at edges
+  // This removes breath/room noise between words without touching speech itself
+  var gapFade = Math.floor(sr * 0.012); // 12ms crossfade at gap edges
+  var writePos2 = 0;
+  for (var m = 0; m < merged.length; m++) {
+    var segSamples = Math.floor((merged[m].end - merged[m].start) * sr);
+    var gap = naturalGap(merged[m].text);
+    // Silence the gap region (after speech segment ends)
+    for (var c = 0; c < outBuf.numberOfChannels; c++) {
+      var d = outBuf.getChannelData(c);
+      var gapStart = writePos2 + segSamples;
+      var gapEnd   = gapStart + gap;
+      // Fade out last 12ms of segment into silence
+      for (var i = Math.max(0, segSamples - gapFade); i < segSamples; i++) {
+        var idx = writePos2 + i;
+        if (idx < d.length) d[idx] *= (segSamples - i) / gapFade;
+      }
+      // Hard silence the gap
+      for (var i = gapStart; i < Math.min(gapEnd, d.length); i++) d[i] = 0;
+      // Fade in first 12ms of next segment from silence
+      for (var i = 0; i < gapFade; i++) {
+        var idx = gapEnd + i;
+        if (idx < d.length) d[idx] *= i / gapFade;
+      }
     }
+    writePos2 += segSamples + gap;
   }
 
   return outBuf;
