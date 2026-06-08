@@ -449,70 +449,117 @@ function buildCleanBuffer(decisions, rawBuf) {
 
   console.log('After filtering: ' + merged.length + ' segments remaining');
 
-  // Single fixed gap between ALL kept segments regardless of how many cuts were between them
-  // This prevents gap stacking when multiple consecutive segments are cut
-  var FIXED_GAP = Math.floor(sr * 0.08); // 80ms — natural pause, not noticeable
+  // ── HELPER: find first sample above silence threshold ──
+  function findSpeechStart(inD, s0, s1, threshold) {
+    var w = Math.floor(sr * 0.01); // 10ms scan window
+    for (var i = s0; i < s1 - w; i += w) {
+      var mx = 0;
+      for (var j = 0; j < w; j++) { var a = Math.abs(inD[i+j]||0); if (a > mx) mx = a; }
+      if (mx > threshold) return Math.max(s0, i - w); // back up one window to preserve attack
+    }
+    return s0;
+  }
 
-  var outLen = merged.reduce(function(sum, seg) {
-    return sum + Math.floor((seg.end - seg.start) * sr) + FIXED_GAP;
+  function findSpeechEnd(inD, s0, s1, threshold) {
+    var w = Math.floor(sr * 0.01);
+    for (var i = s1 - w; i > s0; i -= w) {
+      var mx = 0;
+      for (var j = 0; j < w; j++) { var a = Math.abs(inD[i+j]||0); if (a > mx) mx = a; }
+      if (mx > threshold) return Math.min(s1, i + w * 2); // extend slightly to preserve tails
+    }
+    return s1;
+  }
+
+  // ── HELPER: find nearest zero crossing ──
+  function nearestZeroCrossing(inD, pos, range) {
+    var best = pos;
+    var bestVal = Math.abs(inD[pos] || 0);
+    for (var i = Math.max(0, pos - range); i < Math.min(inD.length, pos + range); i++) {
+      var v = Math.abs(inD[i] || 0);
+      if (v < bestVal) { bestVal = v; best = i; }
+    }
+    return best;
+  }
+
+  // ── HELPER: calculate RMS of a segment ──
+  function segmentRMS(inD, s0, s1) {
+    var sum = 0, count = 0;
+    for (var i = s0; i < s1; i++) { sum += (inD[i]||0) * (inD[i]||0); count++; }
+    return count > 0 ? Math.sqrt(sum / count) : 0;
+  }
+
+  // ── TRIM SILENCE from each segment and find zero crossings ──
+  var silThreshold = 0.015; // amplitude considered silence
+  var zcRange = Math.floor(sr * 0.002); // 2ms search range for zero crossings
+  var trimmed = [];
+  var refRMS = 0; // reference RMS from first segment for volume matching
+
+  merged.forEach(function(seg, idx) {
+    var inD = rawBuf.getChannelData(0); // use ch0 for analysis
+    var rawS0 = Math.floor(seg.start * sr);
+    var rawS1 = Math.min(Math.floor(seg.end * sr), rawBuf.length);
+
+    // Trim silence from start and end
+    var s0 = findSpeechStart(inD, rawS0, rawS1, silThreshold);
+    var s1 = findSpeechEnd(inD, rawS0, rawS1, silThreshold);
+
+    // Snap to zero crossings to avoid clicks
+    s0 = nearestZeroCrossing(inD, s0, zcRange);
+    s1 = nearestZeroCrossing(inD, s1, zcRange);
+
+    var len = s1 - s0;
+    if (len < Math.floor(sr * 0.05)) return; // skip segments under 50ms after trimming
+
+    // Calculate RMS for volume matching
+    var rms = segmentRMS(inD, s0, s1);
+    if (idx === 0) refRMS = rms;
+
+    trimmed.push({ s0: s0, s1: s1, len: len, rms: rms, text: seg.text });
+  });
+
+  if (trimmed.length === 0) throw new Error('No valid segments after trimming.');
+
+  // Fixed 80ms gap between segments — always exactly this, regardless of cuts between
+  var FIXED_GAP = Math.floor(sr * 0.08);
+  var FADE = Math.min(Math.floor(sr * 0.005), 240); // 5ms fade at edges
+
+  var outLen = trimmed.reduce(function(sum, seg) {
+    return sum + seg.len + FIXED_GAP;
   }, 0);
   if (outLen <= 0) throw new Error('Output buffer is empty.');
 
   var offCtx = new OfflineAudioContext(ch, outLen, sr);
   var outBuf  = offCtx.createBuffer(ch, outLen, sr);
   var writePos = 0;
-  var segBoundaries = [];
-  var crossfade = Math.floor(sr * 0.008); // 8ms crossfade at cut edges
 
-  merged.forEach(function(seg) {
-    var s0  = Math.floor(seg.start * sr);
-    var s1  = Math.min(Math.floor(seg.end * sr), rawBuf.length);
-    var len = s1 - s0;
-    if (len <= 0) return;
-    var fade = Math.min(Math.floor(0.005 * sr), Math.floor(len / 4));
+  // ── WRITE SEGMENTS with volume matching ──
+  trimmed.forEach(function(seg) {
+    // Volume match: scale each segment to reference RMS
+    var volScale = (seg.rms > 0 && refRMS > 0)
+      ? Math.min(refRMS / seg.rms, 2.0) // cap at 2x to avoid over-amplifying quiet bits
+      : 1.0;
+
     for (var c = 0; c < ch; c++) {
       var inD  = rawBuf.getChannelData(c);
       var outD = outBuf.getChannelData(c);
-      for (var i = 0; i < len && writePos + i < outLen; i++) {
-        var sample = inD[s0 + i] || 0;
-        if (i < fade)       sample *= i / fade;
-        if (i > len - fade) sample *= (len - i) / fade;
+      for (var i = 0; i < seg.len && writePos + i < outLen; i++) {
+        var sample = (inD[seg.s0 + i] || 0) * volScale;
+        // Short fade in/out at cut boundaries to prevent clicks
+        if (i < FADE)            sample *= i / FADE;
+        if (i > seg.len - FADE)  sample *= (seg.len - i) / FADE;
         outD[writePos + i] = sample;
       }
     }
-    segBoundaries.push({ speechEnd: writePos + len, gapEnd: writePos + len + FIXED_GAP });
-    writePos += len + FIXED_GAP;
-  });
-
-  // ── HARD SILENCE IN GAPS — eliminates breath/wind bleed ──
-  // Also apply a stronger fade before and after each cut to kill breathy tails
-  var breathFade = Math.floor(sr * 0.025); // 25ms fade — enough to kill breath decay
-  segBoundaries.forEach(function(b) {
-    for (var c = 0; c < outBuf.numberOfChannels; c++) {
-      var d = outBuf.getChannelData(c);
-      // Extended fade OUT into gap — kills sibilant/breath tails
-      for (var i = 0; i < breathFade; i++) {
-        var idx = b.speechEnd - breathFade + i;
-        if (idx >= 0 && idx < d.length) {
-          var ratio = (breathFade - i) / breathFade;
-          d[idx] *= ratio * ratio; // squared for faster initial rolloff
-        }
-      }
-      // Complete silence in gap
-      for (var i = b.speechEnd; i < Math.min(b.gapEnd, d.length); i++) d[i] = 0;
-      // Fade IN from gap
-      for (var i = 0; i < crossfade; i++) {
-        var idx = b.gapEnd + i;
-        if (idx < d.length) d[idx] *= i / crossfade;
-      }
-    }
+    // Gap is pure silence — writePos advances past len + gap
+    writePos += seg.len + FIXED_GAP;
+    // The gap region is already zero-filled by default in the new buffer
   });
 
   // ── PLOSIVE LIMITER (T, D, P, B) ──
-  var limitThresh = 0.55;
-  var limitRatio  = 0.30;
-  var attackSamp  = Math.floor(sr * 0.0008);
-  var relSamp     = Math.floor(sr * 0.030);
+  var limitThresh = 0.60;
+  var limitRatio  = 0.35;
+  var attackSamp  = Math.floor(sr * 0.001);
+  var relSamp     = Math.floor(sr * 0.025);
   for (var c = 0; c < outBuf.numberOfChannels; c++) {
     var d = outBuf.getChannelData(c);
     var gain = 1.0;
@@ -521,32 +568,6 @@ function buildCleanBuffer(decisions, rawBuf) {
       var target = abs > limitThresh ? (limitThresh + (abs - limitThresh) * limitRatio) / abs : 1.0;
       gain += (target - gain) / (target < gain ? attackSamp : relSamp);
       d[i] *= gain;
-    }
-  }
-
-  // ── BREATH/WIND SUPPRESSOR ──
-  // Sustained low-amplitude noise (breath, room tone) between words
-  // Detected by: low peak, sustained duration, low peak/RMS ratio
-  var breathWindow = Math.floor(sr * 0.04); // 40ms analysis window
-  var breathThresh = 0.04;  // amplitude below this is likely breath/wind
-  var breathGain   = 0.15;  // reduce breath sounds to 15% (nearly inaudible)
-  for (var c = 0; c < outBuf.numberOfChannels; c++) {
-    var d = outBuf.getChannelData(c);
-    for (var i = 0; i < d.length - breathWindow; i += breathWindow) {
-      // Calculate peak and RMS of this window
-      var wPeak = 0, wRms = 0;
-      for (var j = 0; j < breathWindow; j++) {
-        var a = Math.abs(d[i+j]);
-        if (a > wPeak) wPeak = a;
-        wRms += d[i+j] * d[i+j];
-      }
-      wRms = Math.sqrt(wRms / breathWindow);
-      // If this window is quiet AND has low peak/RMS ratio = sustained noise = breath
-      if (wPeak < breathThresh && wRms > 0.001 && wPeak / Math.max(wRms, 0.0001) < 3.5) {
-        for (var j = 0; j < breathWindow; j++) {
-          d[i+j] *= breathGain;
-        }
-      }
     }
   }
 
@@ -564,7 +585,7 @@ function buildCleanBuffer(decisions, rawBuf) {
     }
   }
 
-  // ── GENTLE HIGH-PASS ──
+  // ── GENTLE HIGH-PASS (DC offset / rumble removal only) ──
   for (var c = 0; c < outBuf.numberOfChannels; c++) {
     var d = outBuf.getChannelData(c);
     var prev = 0;
