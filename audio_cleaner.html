@@ -447,19 +447,14 @@ function buildCleanBuffer(decisions, rawBuf) {
     return dur >= 0.5;
   });
 
-
   console.log('After filtering: ' + merged.length + ' segments remaining');
 
-  // ── FIX 1: TIGHTER NATURAL GAPS ──
-  function naturalGap(text) {
-    var t = (text || '').trim();
-    if (/[.?!]$/.test(t)) return Math.floor(sr * 0.10);
-    if (/[,;:]$/.test(t)) return Math.floor(sr * 0.05);
-    return Math.floor(sr * 0.03);
-  }
+  // Single fixed gap between ALL kept segments regardless of how many cuts were between them
+  // This prevents gap stacking when multiple consecutive segments are cut
+  var FIXED_GAP = Math.floor(sr * 0.08); // 80ms — natural pause, not noticeable
 
   var outLen = merged.reduce(function(sum, seg) {
-    return sum + Math.floor((seg.end - seg.start) * sr) + naturalGap(seg.text);
+    return sum + Math.floor((seg.end - seg.start) * sr) + FIXED_GAP;
   }, 0);
   if (outLen <= 0) throw new Error('Output buffer is empty.');
 
@@ -467,7 +462,7 @@ function buildCleanBuffer(decisions, rawBuf) {
   var outBuf  = offCtx.createBuffer(ch, outLen, sr);
   var writePos = 0;
   var segBoundaries = [];
-  var crossfade = Math.floor(sr * 0.006);
+  var crossfade = Math.floor(sr * 0.008); // 8ms crossfade at cut edges
 
   merged.forEach(function(seg) {
     var s0  = Math.floor(seg.start * sr);
@@ -485,19 +480,27 @@ function buildCleanBuffer(decisions, rawBuf) {
         outD[writePos + i] = sample;
       }
     }
-    segBoundaries.push({ speechEnd: writePos + len, gapEnd: writePos + len + naturalGap(seg.text) });
-    writePos += len + naturalGap(seg.text);
+    segBoundaries.push({ speechEnd: writePos + len, gapEnd: writePos + len + FIXED_GAP });
+    writePos += len + FIXED_GAP;
   });
 
-  // ── FIX 2: HARD SILENCE IN GAPS ──
+  // ── HARD SILENCE IN GAPS — eliminates breath/wind bleed ──
+  // Also apply a stronger fade before and after each cut to kill breathy tails
+  var breathFade = Math.floor(sr * 0.025); // 25ms fade — enough to kill breath decay
   segBoundaries.forEach(function(b) {
     for (var c = 0; c < outBuf.numberOfChannels; c++) {
       var d = outBuf.getChannelData(c);
-      for (var i = 0; i < crossfade; i++) {
-        var idx = b.speechEnd - crossfade + i;
-        if (idx >= 0 && idx < d.length) d[idx] *= (crossfade - i) / crossfade;
+      // Extended fade OUT into gap — kills sibilant/breath tails
+      for (var i = 0; i < breathFade; i++) {
+        var idx = b.speechEnd - breathFade + i;
+        if (idx >= 0 && idx < d.length) {
+          var ratio = (breathFade - i) / breathFade;
+          d[idx] *= ratio * ratio; // squared for faster initial rolloff
+        }
       }
+      // Complete silence in gap
       for (var i = b.speechEnd; i < Math.min(b.gapEnd, d.length); i++) d[i] = 0;
+      // Fade IN from gap
       for (var i = 0; i < crossfade; i++) {
         var idx = b.gapEnd + i;
         if (idx < d.length) d[idx] *= i / crossfade;
@@ -505,7 +508,7 @@ function buildCleanBuffer(decisions, rawBuf) {
     }
   });
 
-  // ── FIX 3: PLOSIVE LIMITER ──
+  // ── PLOSIVE LIMITER (T, D, P, B) ──
   var limitThresh = 0.55;
   var limitRatio  = 0.30;
   var attackSamp  = Math.floor(sr * 0.0008);
@@ -518,6 +521,32 @@ function buildCleanBuffer(decisions, rawBuf) {
       var target = abs > limitThresh ? (limitThresh + (abs - limitThresh) * limitRatio) / abs : 1.0;
       gain += (target - gain) / (target < gain ? attackSamp : relSamp);
       d[i] *= gain;
+    }
+  }
+
+  // ── BREATH/WIND SUPPRESSOR ──
+  // Sustained low-amplitude noise (breath, room tone) between words
+  // Detected by: low peak, sustained duration, low peak/RMS ratio
+  var breathWindow = Math.floor(sr * 0.04); // 40ms analysis window
+  var breathThresh = 0.04;  // amplitude below this is likely breath/wind
+  var breathGain   = 0.15;  // reduce breath sounds to 15% (nearly inaudible)
+  for (var c = 0; c < outBuf.numberOfChannels; c++) {
+    var d = outBuf.getChannelData(c);
+    for (var i = 0; i < d.length - breathWindow; i += breathWindow) {
+      // Calculate peak and RMS of this window
+      var wPeak = 0, wRms = 0;
+      for (var j = 0; j < breathWindow; j++) {
+        var a = Math.abs(d[i+j]);
+        if (a > wPeak) wPeak = a;
+        wRms += d[i+j] * d[i+j];
+      }
+      wRms = Math.sqrt(wRms / breathWindow);
+      // If this window is quiet AND has low peak/RMS ratio = sustained noise = breath
+      if (wPeak < breathThresh && wRms > 0.001 && wPeak / Math.max(wRms, 0.0001) < 3.5) {
+        for (var j = 0; j < breathWindow; j++) {
+          d[i+j] *= breathGain;
+        }
+      }
     }
   }
 
