@@ -434,15 +434,24 @@ function buildCleanBuffer(decisions, rawBuf) {
   keepSegs.forEach(function(seg) {
     if (merged.length && seg.start - merged[merged.length-1].end < 0.25) {
       merged[merged.length-1].end = Math.max(merged[merged.length-1].end, seg.end);
+      merged[merged.length-1].text = (merged[merged.length-1].text || '') + ' ' + (seg.text || '');
     } else {
-      merged.push({ start: seg.start, end: seg.end });
+      merged.push({ start: seg.start, end: seg.end, text: seg.text || '' });
     }
   });
 
+  // Calculate output size with VARIABLE natural gaps
+  // Sentence endings (.?!) get a longer pause, mid-sentence gets shorter
+  function naturalGap(text, sr) {
+    var t = (text || '').trim();
+    if (/[.?!]$/.test(t)) return Math.floor(sr * 0.22); // 220ms after sentence end
+    if (/[,;:]$/.test(t)) return Math.floor(sr * 0.12); // 120ms after comma/pause
+    return Math.floor(sr * 0.08);                        // 80ms between close segments
+  }
+
   // Calculate output size
-  var gapSamples = Math.floor(0.3 * sr);
   var outLen = merged.reduce(function(sum, seg) {
-    return sum + Math.floor((seg.end - seg.start) * sr) + gapSamples;
+    return sum + Math.floor((seg.end - seg.start) * sr) + naturalGap(seg.text, sr);
   }, 0);
   if (outLen <= 0) throw new Error('Output buffer empty.');
 
@@ -456,7 +465,7 @@ function buildCleanBuffer(decisions, rawBuf) {
     var s1 = Math.min(Math.floor(seg.end * sr), rawBuf.length);
     var len = s1 - s0;
     if (len <= 0) return;
-    var fade = Math.min(Math.floor(0.01 * sr), Math.floor(len / 4)); // 10ms fade
+    var fade = Math.min(Math.floor(0.008 * sr), Math.floor(len / 4)); // 8ms fade — subtle, won't clip sibilants
     for (var c = 0; c < ch; c++) {
       var inD  = rawBuf.getChannelData(c);
       var outD = outBuf.getChannelData(c);
@@ -467,7 +476,7 @@ function buildCleanBuffer(decisions, rawBuf) {
         outD[writePos + i] = sample;
       }
     }
-    writePos += len + gapSamples;
+    writePos += len + naturalGap(seg.text, sr);
   });
 
   // Normalize to 88%
@@ -484,14 +493,33 @@ function buildCleanBuffer(decisions, rawBuf) {
     }
   }
 
-  // Noise gate
-  var gate = 0.012, hold = Math.floor(sr * 0.08);
+  // Gentle noise gate — lower threshold so sibilants (s, sh, th) are preserved
+  // Use a longer hold time so tails of words don't get clipped
+  var gate = 0.004;              // much lower threshold — preserves soft sounds
+  var holdMs = Math.floor(sr * 0.18); // 180ms hold — long enough for sibilant tails
+  var releaseMs = Math.floor(sr * 0.06); // 60ms gradual release instead of hard cut
   for (var c = 0; c < outBuf.numberOfChannels; c++) {
-    var d = outBuf.getChannelData(c); var hc = 0;
+    var d = outBuf.getChannelData(c);
+    var hc = 0;
+    var releasing = false;
+    var releaseCount = 0;
     for (var i = 0; i < d.length; i++) {
-      if (Math.abs(d[i]) > gate) { hc = hold; }
-      else if (hc > 0) { hc--; }
-      else { d[i] = 0; }
+      if (Math.abs(d[i]) > gate) {
+        hc = holdMs;
+        releasing = false;
+        releaseCount = 0;
+      } else if (hc > 0) {
+        hc--;
+      } else if (!releasing) {
+        releasing = true;
+        releaseCount = releaseMs;
+      } else if (releaseCount > 0) {
+        // Gradual fade out instead of hard cut — preserves sibilant decay
+        d[i] *= (releaseCount / releaseMs);
+        releaseCount--;
+      } else {
+        d[i] = 0;
+      }
     }
   }
 
