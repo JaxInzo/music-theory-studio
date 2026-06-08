@@ -385,9 +385,8 @@ var colorMap={
   navyblue:'deep navy blue background, sky blue and white accents only'
 };
 
-var HAND_DRAWN_PREFIX='16:9 widescreen landscape orientation. Simple hand-drawn educational music theory illustration that looks genuinely hand-drawn with imperfect natural lines — like a music teacher sketching on a whiteboard. One single clear concept centered in the frame with lots of empty space around it. No text, no labels, no clutter whatsoever. ';
-
-var ACCURACY_RULES='CRITICAL MUSIC THEORY ACCURACY: Treble clef must curl around the second line from bottom (G line). Bass clef sits on the fourth line (F line). Notes must sit precisely on correct lines or in correct spaces. Whole note = open oval, no stem. Half note = open oval with stem. Quarter note = filled oval with stem. Middle C = open oval on ledger line below treble staff. Staff = exactly 5 horizontal parallel lines with equal spacing. These rules override all style preferences.';
+var HAND_DRAWN_PREFIX='Hand-drawn educational music theory illustration, 16:9 landscape, sketchy whiteboard style, simple and minimal, one clear concept centered in frame, no text or labels. ';
+var ACCURACY_RULES='Music theory accuracy: treble clef wraps around G line (2nd from bottom). Notes sit on correct lines/spaces. Whole note=open oval, quarter note=filled oval with stem. Staff has exactly 5 lines. ';
 
 function getStyleStr(artKey,colorKey,extra){
   return (artStyleMap[artKey]||artStyleMap.navy)+'. '+(colorMap[colorKey]||colorMap.full)+'.'+(extra?' '+extra+'.':'');
@@ -512,22 +511,24 @@ async function transcribeAudio(audioFile){
 // ============================================================
 // HUGGING FACE — FLUX (IMAGE GENERATION)
 // ============================================================
-async function generateImage(prompt){
+async function generateImage(prompt, seed){
   var key=document.getElementById('hfKey').value.trim();
+  // Use a unique seed per image to prevent repeated/cached outputs
+  var uniqueSeed = seed !== undefined ? seed : Math.floor(Math.random()*2147483647);
 
-  // Try new router endpoint first (required after HF inference provider migration)
+  // Try new router endpoint first
   var r=await fetch('https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell',{
     method:'POST',
     headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json','x-wait-for-model':'true'},
-    body:JSON.stringify({inputs:prompt,parameters:{width:1280,height:720,num_inference_steps:4,guidance_scale:0.0}})
+    body:JSON.stringify({inputs:prompt,parameters:{width:1280,height:720,num_inference_steps:4,guidance_scale:0.0,seed:uniqueSeed}})
   });
 
-  // Fallback to legacy endpoint if router fails
+  // Fallback to legacy endpoint
   if(!r.ok){
     r=await fetch('https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell',{
       method:'POST',
       headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
-      body:JSON.stringify({inputs:prompt,parameters:{width:1280,height:720,num_inference_steps:4,guidance_scale:0.0}})
+      body:JSON.stringify({inputs:prompt,parameters:{width:1280,height:720,num_inference_steps:4,guidance_scale:0.0,seed:uniqueSeed}})
     });
   }
 
@@ -538,7 +539,6 @@ async function generateImage(prompt){
     throw new Error('Image generation failed ('+r.status+'): '+txt.slice(0,120));
   }
 
-  // Check content type — should be image, not JSON error
   var ct=r.headers.get('content-type')||'';
   if(ct.indexOf('application/json')>-1){
     var json=await r.json();
@@ -712,7 +712,7 @@ async function produceVideo(){
     setProgress(50,'Step 2b — Generating image prompts for '+currentScenes.length+' scenes...');
 
     var promptsText=currentScenes.map(function(s,i){return'Scene '+(i+1)+': '+s.text;}).join('\n');
-    var promptInstr=HAND_DRAWN_PREFIX+ACCURACY_RULES+'\n\nChannel: "'+channelName+'". Style: '+styleStr+'\n\nFor each scene generate exactly one image prompt. Rules:\n1. Start with: "16:9 widescreen hand-drawn music theory sketch:"\n2. One specific visual concept directly illustrating what is spoken\n3. Apply accuracy rules above strictly for any music notation\n4. Style: '+styleStr+'\n5. Under 55 words\n6. No text or labels in the image\n7. Landscape 16:9 widescreen always\n\nOutput ONLY numbered prompts:\n1. [prompt]\n2. [prompt]\n\nScenes:\n'+promptsText;
+    var promptInstr='You are writing image generation prompts for a music theory YouTube video. Each prompt will be sent to an AI image generator.\n\nStyle to use for ALL images: '+styleStr+'\n\nFor each scene write ONE short image prompt (max 30 words). The prompt must:\n1. Start with the scene content — what is actually being talked about\n2. Then add style: "hand-drawn sketch, '+styleStr+'"\n3. Be specific to the scene — no generic music imagery\n4. No text or labels in the image\n\nOutput ONLY numbered prompts, nothing else:\n1. [prompt]\n2. [prompt]\n\nScenes:\n'+promptsText;
 
     var promptsRaw=await callGemini(promptInstr,5000);
     var promptLines=promptsRaw.split('\n').filter(function(l){return /^\d+\./.test(l.trim());});
@@ -734,8 +734,9 @@ async function produceVideo(){
       updateCardStatus(i,'generating');
 
       try{
-        if(i>0)await sleep(1000);
-        var blob=await generateImage(currentScenes[i].prompt);
+        if(i>0)await sleep(1500);
+        var seed=Math.floor(Math.random()*2147483647);
+        var blob=await generateImage(currentScenes[i].prompt, seed);
         currentScenes[i].imgBlob=blob;
         imageBlobs[i]=blob;
         var url=URL.createObjectURL(blob);
@@ -745,9 +746,9 @@ async function produceVideo(){
         if(err.message==='model_loading'){
           updateCardStatus(i,'waiting');
           await sleep(30000);
-          // retry
           try{
-            var blob2=await generateImage(currentScenes[i].prompt);
+            var seed2=Math.floor(Math.random()*2147483647);
+            var blob2=await generateImage(currentScenes[i].prompt, seed2);
             currentScenes[i].imgBlob=blob2;
             imageBlobs[i]=blob2;
             updateCardImage(i,URL.createObjectURL(blob2));
@@ -846,7 +847,7 @@ async function regenImage(i){
   if(ph){ph.style.display='flex';ph.innerHTML='<svg class="pulsing spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span style="font-size:10px;color:var(--text3);">Regenerating...</span>';}
   if(img)img.style.display='none';
   try{
-    var blob=await generateImage(currentScenes[i].prompt);
+    var blob=await generateImage(currentScenes[i].prompt, Math.floor(Math.random()*2147483647));
     currentScenes[i].imgBlob=blob;
     imageBlobs[i]=blob;
     updateCardImage(i,URL.createObjectURL(blob));
