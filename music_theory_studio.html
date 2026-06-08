@@ -144,20 +144,20 @@
       </div>
       <div class="grid2">
         <div class="field">
-          <label for="claudeKey">Google Gemini API key — scripts &amp; scene detection</label>
+          <label for="claudeKey">Groq API key — scripts &amp; scene detection</label>
           <div class="pw-wrap">
-            <input type="password" id="claudeKey" placeholder="AIzaSy..." oninput="saveKey('claude',this.value)">
+            <input type="password" id="claudeKey" placeholder="gsk_..." oninput="saveKey('claude',this.value)">
             <button class="pw-toggle" onclick="toggleKey('claudeKey','eye1')" aria-label="Toggle"><svg id="eye1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
           </div>
-          <p style="font-size:11px;color:var(--text3);margin-top:4px;"><a href="https://aistudio.google.com" target="_blank" style="color:var(--gold);text-decoration:none;">aistudio.google.com</a> — free</p>
+          <p style="font-size:11px;color:var(--text3);margin-top:4px;"><a href="https://console.groq.com" target="_blank" style="color:var(--gold);text-decoration:none;">console.groq.com</a> — free, no daily quota</p>
         </div>
         <div class="field">
-          <label for="groqKey">Groq API key — audio transcription</label>
+          <label for="groqKey">Groq API key — transcription &amp; scene detection</label>
           <div class="pw-wrap">
-            <input type="password" id="groqKey" placeholder="gsk_..." oninput="saveKey('groq',this.value)">
+            <input type="password" id="groqKey" placeholder="gsk_..." oninput="saveKey('groq',this.value);document.getElementById('claudeKey').value=this.value;saveKey('claude',this.value);">
             <button class="pw-toggle" onclick="toggleKey('groqKey','eye2')" aria-label="Toggle"><svg id="eye2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
           </div>
-          <p style="font-size:11px;color:var(--text3);margin-top:4px;"><a href="https://console.groq.com" target="_blank" style="color:var(--gold);text-decoration:none;">console.groq.com</a> — free</p>
+          <p style="font-size:11px;color:var(--text3);margin-top:4px;">Same key as above — one Groq key for everything</p>
         </div>
       </div>
       <div class="grid2" style="margin-top:14px;">
@@ -421,8 +421,8 @@ function saveSetting(k,v){localStorage.setItem('mts_'+k,v);showSave();}
 function showSave(){var el=document.getElementById('saveIndicator');el.style.display='inline-flex';clearTimeout(window._st);window._st=setTimeout(function(){el.style.display='none';},2000);}
 
 function loadSaved(){
-  var ck=localStorage.getItem('mts_key_claude');if(ck)document.getElementById('claudeKey').value=ck;
-  var gk=localStorage.getItem('mts_key_groq');if(gk)document.getElementById('groqKey').value=gk;
+  var ck=localStorage.getItem('mts_key_claude');if(ck){document.getElementById('claudeKey').value=ck;document.getElementById('groqKey').value=ck;}
+  var gk=localStorage.getItem('mts_key_groq');if(gk){document.getElementById('groqKey').value=gk;document.getElementById('claudeKey').value=gk;}
   var hk=localStorage.getItem('mts_key_hf');if(hk)document.getElementById('hfKey').value=hk;
   ['tone','audience','length','complexity'].forEach(function(f){var v=localStorage.getItem('mts_def_'+f);if(v&&document.getElementById(f))document.getElementById(f).value=v;});
   ['avoid','channelName','channelTagline','globalAvoid'].forEach(function(f){var v=localStorage.getItem('mts_'+f);if(v&&document.getElementById(f))document.getElementById(f).value=v;});
@@ -462,16 +462,21 @@ function setGenProgress(pct,label){
 // ============================================================
 async function callGemini(prompt,maxTokens){
   var key=document.getElementById('claudeKey').value.trim();
-  if(!key)throw new Error('Please enter your Gemini API key.');
-  var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{
+  if(!key)throw new Error('Please enter your Groq API key.');
+  var r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens||2000}})
+    headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'llama-3.3-70b-versatile',
+      messages:[{role:'user',content:prompt}],
+      temperature:0.2,
+      max_tokens:maxTokens||3000
+    })
   });
-  if(!r.ok){var e=await r.json();throw new Error(e.error&&e.error.message?e.error.message:'Gemini API error '+r.status);}
+  if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error(e.error&&e.error.message?e.error.message:'Groq API error '+r.status);}
   var d=await r.json();
-  if(!d.candidates||!d.candidates[0])throw new Error('No response from Gemini. You may have hit your daily quota — try again later.');
-  return d.candidates[0].content.parts[0].text;
+  if(!d.choices||!d.choices[0])throw new Error('No response from Groq.');
+  return d.choices[0].message.content;
 }
 
 // ============================================================
