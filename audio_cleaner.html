@@ -430,10 +430,10 @@ function buildCleanBuffer(decisions, rawBuf) {
   // Sort by start time
   keepSegs.sort(function(a, b) { return a.start - b.start; });
 
-  // Merge overlapping or very close segments (within 0.2s)
+  // Merge segments — use 1.0s threshold to catch natural breath pauses within sentences
   var merged = [];
   keepSegs.forEach(function(seg) {
-    if (merged.length && seg.start - merged[merged.length-1].end < 0.20) {
+    if (merged.length && seg.start - merged[merged.length-1].end < 1.0) {
       merged[merged.length-1].end  = Math.max(merged[merged.length-1].end, seg.end);
       merged[merged.length-1].text = (merged[merged.length-1].text || '') + ' ' + seg.text;
     } else {
@@ -496,19 +496,32 @@ function buildCleanBuffer(decisions, rawBuf) {
     }
   }
 
-  // Gentle noise gate with gradual release to preserve sibilants
-  var gate       = 0.004;
-  var holdSamp   = Math.floor(sr * 0.18);
-  var relSamp    = Math.floor(sr * 0.06);
+  // Normalize to 88%
+  var peak = 0;
   for (var c = 0; c < outBuf.numberOfChannels; c++) {
     var d = outBuf.getChannelData(c);
-    var hc = 0, releasing = false, rc = 0;
+    for (var i = 0; i < d.length; i++) { var a = Math.abs(d[i]); if (a > peak) peak = a; }
+  }
+  if (peak > 0 && peak < 0.88) {
+    var nf = 0.88 / peak;
+    for (var c = 0; c < outBuf.numberOfChannels; c++) {
+      var d = outBuf.getChannelData(c);
+      for (var i = 0; i < d.length; i++) d[i] *= nf;
+    }
+  }
+
+  // NO noise gate — it clips sibilants and word endings
+  // The recording is clean enough without it
+  // We only apply a very gentle high-pass to remove low rumble
+  var hpPrev = new Array(ch).fill(0);
+  var hpAlpha = 0.995; // very gentle — only removes DC offset and sub-bass rumble
+  for (var c = 0; c < outBuf.numberOfChannels; c++) {
+    var d = outBuf.getChannelData(c);
+    var prev = 0;
     for (var i = 0; i < d.length; i++) {
-      if (Math.abs(d[i]) > gate) { hc = holdSamp; releasing = false; rc = 0; }
-      else if (hc > 0)           { hc--; }
-      else if (!releasing)       { releasing = true; rc = relSamp; }
-      else if (rc > 0)           { d[i] *= rc / relSamp; rc--; }
-      else                       { d[i] = 0; }
+      var filtered = hpAlpha * (prev + d[i] - (i > 0 ? outBuf.getChannelData(c)[i-1] : 0));
+      prev = filtered;
+      d[i] = filtered;
     }
   }
 
