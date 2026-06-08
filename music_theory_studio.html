@@ -514,16 +514,37 @@ async function transcribeAudio(audioFile){
 // ============================================================
 async function generateImage(prompt){
   var key=document.getElementById('hfKey').value.trim();
-  var r=await fetch('https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell',{
+
+  // Try new router endpoint first (required after HF inference provider migration)
+  var r=await fetch('https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell',{
     method:'POST',
-    headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
-    body:JSON.stringify({inputs:prompt,parameters:{width:1280,height:720,num_inference_steps:4,guidance_scale:3.5}})
+    headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json','x-wait-for-model':'true'},
+    body:JSON.stringify({inputs:prompt,parameters:{width:1280,height:720,num_inference_steps:4,guidance_scale:0.0}})
   });
+
+  // Fallback to legacy endpoint if router fails
+  if(!r.ok){
+    r=await fetch('https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
+      body:JSON.stringify({inputs:prompt,parameters:{width:1280,height:720,num_inference_steps:4,guidance_scale:0.0}})
+    });
+  }
+
   if(!r.ok){
     var txt=await r.text();
     if(r.status===503)throw new Error('model_loading');
-    throw new Error('Image generation failed ('+r.status+'): '+txt.slice(0,100));
+    if(r.status===401||r.status===403)throw new Error('Invalid Hugging Face API key — check your key has inference permissions.');
+    throw new Error('Image generation failed ('+r.status+'): '+txt.slice(0,120));
   }
+
+  // Check content type — should be image, not JSON error
+  var ct=r.headers.get('content-type')||'';
+  if(ct.indexOf('application/json')>-1){
+    var json=await r.json();
+    throw new Error('HF returned error: '+(json.error||JSON.stringify(json).slice(0,100)));
+  }
+
   return await r.blob();
 }
 
