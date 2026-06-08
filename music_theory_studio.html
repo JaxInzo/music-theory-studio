@@ -712,7 +712,32 @@ async function produceVideo(){
     setProgress(50,'Step 2b — Generating image prompts for '+currentScenes.length+' scenes...');
 
     var promptsText=currentScenes.map(function(s,i){return'Scene '+(i+1)+': '+s.text;}).join('\n');
-    var promptInstr='You are writing image generation prompts for a music theory YouTube video. Each prompt will be sent to an AI image generator.\n\nStyle to use for ALL images: '+styleStr+'\n\nFor each scene write ONE short image prompt (max 30 words). The prompt must:\n1. Start with the scene content — what is actually being talked about\n2. Then add style: "hand-drawn sketch, '+styleStr+'"\n3. Be specific to the scene — no generic music imagery\n4. No text or labels in the image\n\nOutput ONLY numbered prompts, nothing else:\n1. [prompt]\n2. [prompt]\n\nScenes:\n'+promptsText;
+
+    var MUSIC_VISUAL_RULES='MUSIC THEORY VISUAL ACCURACY RULES — follow these exactly:\n'
+      +'STAFF: Always draw exactly 5 horizontal parallel lines, equal spacing. Never more, never less.\n'
+      +'TREBLE CLEF: The clef symbol curls around the second line from the bottom (the G line). Do not add other clef symbols unless specifically requested.\n'
+      +'NOTES ON STAFF: Each note name has a fixed position — C4 sits on a ledger line below the staff, D4 in the space below line 1, E4 on line 1, F4 in space 1, G4 on line 2, A4 in space 2, B4 on line 3, C5 in space 3.\n'
+      +'NOTE SHAPES: Whole note = hollow oval, no stem. Half note = hollow oval with a stem. Quarter note = filled black oval with a stem. Eighth note = filled oval with stem and one flag.\n'
+      +'SCALES: A scale is a sequence of single notes ascending or descending on a staff, one note at a time, no chords, no double notes, no accidentals unless specified. Show notes in a clear left-to-right progression.\n'
+      +'CHORDS: Only show chords (multiple notes stacked vertically) when the scene specifically talks about chords. Never add chord shapes to scale or melody scenes.\n'
+      +'INTERVALS: Show two notes only — one on the bottom position, one on the top position at the correct distance apart on the staff.\n'
+      +'KEY SIGNATURES: Show sharps or flats only at the very beginning of the staff, before the time signature. Never scatter accidentals randomly.\n'
+      +'RHYTHM: Show note values clearly — if explaining rhythm, use a mix of note shapes that matches what is described. Do not mix note types randomly.\n'
+      +'ONE CONCEPT ONLY: Each image shows exactly one concept. Never combine a scale AND a chord. Never show a full song. Keep it simple and educational.\n'
+      +'NO DECORATIONS: No extra notes, no random accidentals, no piano keys unless specifically mentioned, no guitar shapes unless specifically mentioned.\n';
+
+    var promptInstr='You are writing precise image generation prompts for an educational music theory YouTube channel called "'+channelName+'". These prompts go directly to an AI image generator and must produce accurate music theory visuals.\n\n'
+      +MUSIC_VISUAL_RULES
+      +'\nArt style for ALL images: '+styleStr+'\n\n'
+      +'For each scene below, write ONE image generation prompt. Requirements:\n'
+      +'1. Identify the SINGLE most important music theory concept in the scene\n'
+      +'2. Describe it with complete visual accuracy using the rules above\n'
+      +'3. Be very specific — name exact notes, exact positions, exact note types if relevant\n'
+      +'4. Keep the prompt under 40 words\n'
+      +'5. End with the style: "'+styleStr+'"\n'
+      +'6. NO text or labels in the image\n'
+      +'7. If the scene is an intro or outro with no specific music theory concept, show the MusicIsEasy channel logo concept: a simple treble clef made of musical notes, '+styleStr+'\n\n'
+      +'Output ONLY numbered prompts:\n1. [prompt]\n2. [prompt]\n\nScenes:\n'+promptsText;
 
     var promptsRaw=await callGemini(promptInstr,5000);
     var promptLines=promptsRaw.split('\n').filter(function(l){return /^\d+\./.test(l.trim());});
