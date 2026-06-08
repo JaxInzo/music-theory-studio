@@ -502,14 +502,20 @@ function buildCleanBuffer(decisions, rawBuf) {
   var refRMS         = 0;
   var prevKeptEnd    = 0; // track where the previous kept segment ended in raw audio
 
+  var LAST_SEG_TAIL = Math.floor(sr * 0.18); // 180ms extra buffer at end of last segment
+
   merged.forEach(function(seg, idx) {
     var inD   = rawBuf.getChannelData(0);
     var rawS0 = Math.floor(seg.start * sr);
     var rawS1 = Math.min(Math.floor(seg.end * sr), rawBuf.length);
+    var isLast = (idx === merged.length - 1);
 
     // ── FIND WHERE SPEECH ACTUALLY STARTS in this segment ──
     var speechStart = findSpeechStart(inD, rawS0, rawS1, SIL_THRESHOLD);
-    var speechEnd   = findSpeechEnd(inD, rawS0, rawS1, SIL_THRESHOLD);
+    // For last segment extend end by 500ms so final word isn't clipped
+    var speechEnd = isLast
+      ? Math.min(rawS1 + LAST_SEG_TAIL, rawBuf.length)
+      : findSpeechEnd(inD, rawS0, rawS1, SIL_THRESHOLD);
 
     // ── FIND THE SILENCE GAP between previous kept segment and this speech start ──
     // This gap contains: silence at end of prev kept + any cut segments + silence before this speech
