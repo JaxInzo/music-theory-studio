@@ -447,107 +447,108 @@ function buildCleanBuffer(decisions, rawBuf) {
     return dur >= 0.5;
   });
 
-  console.log('After filtering short artifacts: ' + merged.length + ' segments remaining');
-  merged.forEach(function(s) { console.log('  KEEP [' + s.start.toFixed(1) + 's-' + s.end.toFixed(1) + 's]: ' + s.text.slice(0,60)); });
 
-  // Variable natural gaps between segments
+  console.log('After filtering: ' + merged.length + ' segments remaining');
+
+  // ── FIX 1: TIGHTER NATURAL GAPS ──
   function naturalGap(text) {
     var t = (text || '').trim();
-    if (/[.?!]$/.test(t)) return Math.floor(sr * 0.20);
-    if (/[,;:]$/.test(t)) return Math.floor(sr * 0.10);
-    return Math.floor(sr * 0.07);
+    if (/[.?!]$/.test(t)) return Math.floor(sr * 0.10);
+    if (/[,;:]$/.test(t)) return Math.floor(sr * 0.05);
+    return Math.floor(sr * 0.03);
   }
 
-  // Calculate output length
   var outLen = merged.reduce(function(sum, seg) {
     return sum + Math.floor((seg.end - seg.start) * sr) + naturalGap(seg.text);
   }, 0);
   if (outLen <= 0) throw new Error('Output buffer is empty.');
 
-  // Build output buffer
   var offCtx = new OfflineAudioContext(ch, outLen, sr);
   var outBuf  = offCtx.createBuffer(ch, outLen, sr);
   var writePos = 0;
+  var segBoundaries = [];
+  var crossfade = Math.floor(sr * 0.006);
 
   merged.forEach(function(seg) {
     var s0  = Math.floor(seg.start * sr);
     var s1  = Math.min(Math.floor(seg.end * sr), rawBuf.length);
     var len = s1 - s0;
     if (len <= 0) return;
-    var fade = Math.min(Math.floor(0.008 * sr), Math.floor(len / 4));
+    var fade = Math.min(Math.floor(0.005 * sr), Math.floor(len / 4));
     for (var c = 0; c < ch; c++) {
       var inD  = rawBuf.getChannelData(c);
       var outD = outBuf.getChannelData(c);
       for (var i = 0; i < len && writePos + i < outLen; i++) {
         var sample = inD[s0 + i] || 0;
-        if (i < fade)        sample *= i / fade;
-        if (i > len - fade)  sample *= (len - i) / fade;
+        if (i < fade)       sample *= i / fade;
+        if (i > len - fade) sample *= (len - i) / fade;
         outD[writePos + i] = sample;
       }
     }
+    segBoundaries.push({ speechEnd: writePos + len, gapEnd: writePos + len + naturalGap(seg.text) });
     writePos += len + naturalGap(seg.text);
   });
 
-  // Normalize to 88%
+  // ── FIX 2: HARD SILENCE IN GAPS ──
+  segBoundaries.forEach(function(b) {
+    for (var c = 0; c < outBuf.numberOfChannels; c++) {
+      var d = outBuf.getChannelData(c);
+      for (var i = 0; i < crossfade; i++) {
+        var idx = b.speechEnd - crossfade + i;
+        if (idx >= 0 && idx < d.length) d[idx] *= (crossfade - i) / crossfade;
+      }
+      for (var i = b.speechEnd; i < Math.min(b.gapEnd, d.length); i++) d[i] = 0;
+      for (var i = 0; i < crossfade; i++) {
+        var idx = b.gapEnd + i;
+        if (idx < d.length) d[idx] *= i / crossfade;
+      }
+    }
+  });
+
+  // ── FIX 3: PLOSIVE LIMITER ──
+  var limitThresh = 0.55;
+  var limitRatio  = 0.30;
+  var attackSamp  = Math.floor(sr * 0.0008);
+  var relSamp     = Math.floor(sr * 0.030);
+  for (var c = 0; c < outBuf.numberOfChannels; c++) {
+    var d = outBuf.getChannelData(c);
+    var gain = 1.0;
+    for (var i = 0; i < d.length; i++) {
+      var abs = Math.abs(d[i]);
+      var target = abs > limitThresh ? (limitThresh + (abs - limitThresh) * limitRatio) / abs : 1.0;
+      gain += (target - gain) / (target < gain ? attackSamp : relSamp);
+      d[i] *= gain;
+    }
+  }
+
+  // ── NORMALIZE to 85% ──
   var peak = 0;
   for (var c = 0; c < outBuf.numberOfChannels; c++) {
     var d = outBuf.getChannelData(c);
     for (var i = 0; i < d.length; i++) { var a = Math.abs(d[i]); if (a > peak) peak = a; }
   }
-  if (peak > 0 && peak < 0.88) {
-    var nf = 0.88 / peak;
+  if (peak > 0 && peak < 0.85) {
+    var nf = 0.85 / peak;
     for (var c = 0; c < outBuf.numberOfChannels; c++) {
       var d = outBuf.getChannelData(c);
       for (var i = 0; i < d.length; i++) d[i] *= nf;
     }
   }
 
-  // Normalize to 88%
-  var peak = 0;
+  // ── GENTLE HIGH-PASS ──
   for (var c = 0; c < outBuf.numberOfChannels; c++) {
     var d = outBuf.getChannelData(c);
-    for (var i = 0; i < d.length; i++) { var a = Math.abs(d[i]); if (a > peak) peak = a; }
-  }
-  if (peak > 0 && peak < 0.88) {
-    var nf = 0.88 / peak;
-    for (var c = 0; c < outBuf.numberOfChannels; c++) {
-      var d = outBuf.getChannelData(c);
-      for (var i = 0; i < d.length; i++) d[i] *= nf;
+    var prev = 0;
+    for (var i = 1; i < d.length; i++) {
+      var hp = 0.995 * (prev + d[i] - d[i-1]);
+      prev = hp;
+      d[i] = hp;
     }
-  }
-
-  // Targeted silence in gaps between segments only
-  // We track where each segment ends and the next begins,
-  // and silence only the gap region with a short crossfade at edges
-  // This removes breath/room noise between words without touching speech itself
-  var gapFade = Math.floor(sr * 0.012); // 12ms crossfade at gap edges
-  var writePos2 = 0;
-  for (var m = 0; m < merged.length; m++) {
-    var segSamples = Math.floor((merged[m].end - merged[m].start) * sr);
-    var gap = naturalGap(merged[m].text);
-    // Silence the gap region (after speech segment ends)
-    for (var c = 0; c < outBuf.numberOfChannels; c++) {
-      var d = outBuf.getChannelData(c);
-      var gapStart = writePos2 + segSamples;
-      var gapEnd   = gapStart + gap;
-      // Fade out last 12ms of segment into silence
-      for (var i = Math.max(0, segSamples - gapFade); i < segSamples; i++) {
-        var idx = writePos2 + i;
-        if (idx < d.length) d[idx] *= (segSamples - i) / gapFade;
-      }
-      // Hard silence the gap
-      for (var i = gapStart; i < Math.min(gapEnd, d.length); i++) d[i] = 0;
-      // Fade in first 12ms of next segment from silence
-      for (var i = 0; i < gapFade; i++) {
-        var idx = gapEnd + i;
-        if (idx < d.length) d[idx] *= i / gapFade;
-      }
-    }
-    writePos2 += segSamples + gap;
   }
 
   return outBuf;
 }
+
 
 // ── ENCODE WAV ─────────────────────────────────────────────────
 function encodeWAV(buf) {
