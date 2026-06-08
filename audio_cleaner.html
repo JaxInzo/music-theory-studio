@@ -456,15 +456,15 @@ function buildCleanBuffer(decisions, rawBuf) {
 
   console.log('After filtering: ' + merged.length + ' segments remaining');
 
-  // ── HELPER: find first sample above silence threshold ──
+  // ── HELPERS ──
   function findSpeechStart(inD, s0, s1, threshold) {
-    var w = Math.floor(sr * 0.01); // 10ms scan window
+    var w = Math.floor(sr * 0.01);
     for (var i = s0; i < s1 - w; i += w) {
       var mx = 0;
       for (var j = 0; j < w; j++) { var a = Math.abs(inD[i+j]||0); if (a > mx) mx = a; }
-      if (mx > threshold) return Math.max(s0, i - w); // back up one window to preserve attack
+      if (mx > threshold) return Math.max(s0, i - w);
     }
-    return s0;
+    return s1; // no speech found
   }
 
   function findSpeechEnd(inD, s0, s1, threshold) {
@@ -472,12 +472,11 @@ function buildCleanBuffer(decisions, rawBuf) {
     for (var i = s1 - w; i > s0; i -= w) {
       var mx = 0;
       for (var j = 0; j < w; j++) { var a = Math.abs(inD[i+j]||0); if (a > mx) mx = a; }
-      if (mx > threshold) return Math.min(s1, i + w * 2); // extend slightly to preserve tails
+      if (mx > threshold) return Math.min(s1, i + w * 2);
     }
-    return s1;
+    return s0;
   }
 
-  // ── HELPER: find nearest zero crossing ──
   function nearestZeroCrossing(inD, pos, range) {
     var best = pos;
     var bestVal = Math.abs(inD[pos] || 0);
@@ -488,51 +487,73 @@ function buildCleanBuffer(decisions, rawBuf) {
     return best;
   }
 
-  // ── HELPER: calculate RMS of a segment ──
   function segmentRMS(inD, s0, s1) {
     var sum = 0, count = 0;
     for (var i = s0; i < s1; i++) { sum += (inD[i]||0) * (inD[i]||0); count++; }
     return count > 0 ? Math.sqrt(sum / count) : 0;
   }
 
-  // ── TRIM SILENCE from each segment and find zero crossings ──
-  var silThreshold = 0.015; // amplitude considered silence
-  var zcRange = Math.floor(sr * 0.002); // 2ms search range for zero crossings
-  var trimmed = [];
-  var refRMS = 0; // reference RMS from first segment for volume matching
+  // ── KEY RULE: strip silence before each kept segment ──
+  // Maximum natural lead-in silence allowed before a kept segment
+  var MAX_LEAD_IN    = Math.floor(sr * 0.12); // 120ms max natural pause before speech
+  var SIL_THRESHOLD  = 0.015;
+  var ZC_RANGE       = Math.floor(sr * 0.002);
+  var trimmed        = [];
+  var refRMS         = 0;
+  var prevKeptEnd    = 0; // track where the previous kept segment ended in raw audio
 
   merged.forEach(function(seg, idx) {
-    var inD = rawBuf.getChannelData(0); // use ch0 for analysis
+    var inD   = rawBuf.getChannelData(0);
     var rawS0 = Math.floor(seg.start * sr);
     var rawS1 = Math.min(Math.floor(seg.end * sr), rawBuf.length);
 
-    // Trim silence from start and end
-    var s0 = findSpeechStart(inD, rawS0, rawS1, silThreshold);
-    var s1 = findSpeechEnd(inD, rawS0, rawS1, silThreshold);
+    // ── FIND WHERE SPEECH ACTUALLY STARTS in this segment ──
+    var speechStart = findSpeechStart(inD, rawS0, rawS1, SIL_THRESHOLD);
+    var speechEnd   = findSpeechEnd(inD, rawS0, rawS1, SIL_THRESHOLD);
 
-    // Snap to zero crossings to avoid clicks
-    s0 = nearestZeroCrossing(inD, s0, zcRange);
-    s1 = nearestZeroCrossing(inD, s1, zcRange);
+    // ── FIND THE SILENCE GAP between previous kept segment and this speech start ──
+    // This gap contains: silence at end of prev kept + any cut segments + silence before this speech
+    // We want to replace ALL of that with at most MAX_LEAD_IN of silence
+    var gapStart = prevKeptEnd; // where previous kept audio ended in raw timeline
+    var gapEnd   = speechStart; // where this speech starts
+
+    // If the gap (from prev end to this speech start) > MAX_LEAD_IN,
+    // we cut it down — start this segment MAX_LEAD_IN before speech begins
+    var s0;
+    if (idx === 0) {
+      // First segment — just start at speech, no lead-in needed
+      s0 = speechStart;
+    } else {
+      // Cap lead-in to MAX_LEAD_IN
+      s0 = Math.max(speechStart - MAX_LEAD_IN, rawS0);
+    }
+
+    var s1 = speechEnd;
+
+    // Snap to zero crossings
+    s0 = nearestZeroCrossing(inD, s0, ZC_RANGE);
+    s1 = nearestZeroCrossing(inD, s1, ZC_RANGE);
 
     var len = s1 - s0;
-    if (len < Math.floor(sr * 0.05)) return; // skip segments under 50ms after trimming
+    if (len < Math.floor(sr * 0.05)) {
+      prevKeptEnd = rawS1;
+      return; // skip too-short segments
+    }
 
-    // Calculate RMS for volume matching
     var rms = segmentRMS(inD, s0, s1);
-    if (idx === 0) refRMS = rms;
+    if (idx === 0 || refRMS === 0) refRMS = rms;
 
+    prevKeptEnd = rawS1; // update for next iteration
     trimmed.push({ s0: s0, s1: s1, len: len, rms: rms, text: seg.text });
   });
 
   if (trimmed.length === 0) throw new Error('No valid segments after trimming.');
 
   // Fixed 80ms gap between segments — always exactly this, regardless of cuts between
-  var FIXED_GAP = Math.floor(sr * 0.08);
-  var FADE = Math.min(Math.floor(sr * 0.005), 240); // 5ms fade at edges
+  // No fixed gap — the capped lead-in silence in each segment handles natural transitions
+  var FADE = Math.min(Math.floor(sr * 0.005), 240); // 5ms fade at cut edges only
 
-  var outLen = trimmed.reduce(function(sum, seg) {
-    return sum + seg.len + FIXED_GAP;
-  }, 0);
+  var outLen = trimmed.reduce(function(sum, seg) { return sum + seg.len; }, 0);
   if (outLen <= 0) throw new Error('Output buffer is empty.');
 
   var offCtx = new OfflineAudioContext(ch, outLen, sr);
@@ -541,25 +562,18 @@ function buildCleanBuffer(decisions, rawBuf) {
 
   // ── WRITE SEGMENTS with volume matching ──
   trimmed.forEach(function(seg) {
-    // Volume match: scale each segment to reference RMS
-    var volScale = (seg.rms > 0 && refRMS > 0)
-      ? Math.min(refRMS / seg.rms, 2.0) // cap at 2x to avoid over-amplifying quiet bits
-      : 1.0;
-
+    var volScale = (seg.rms > 0 && refRMS > 0) ? Math.min(refRMS / seg.rms, 2.0) : 1.0;
     for (var c = 0; c < ch; c++) {
       var inD  = rawBuf.getChannelData(c);
       var outD = outBuf.getChannelData(c);
       for (var i = 0; i < seg.len && writePos + i < outLen; i++) {
         var sample = (inD[seg.s0 + i] || 0) * volScale;
-        // Short fade in/out at cut boundaries to prevent clicks
-        if (i < FADE)            sample *= i / FADE;
-        if (i > seg.len - FADE)  sample *= (seg.len - i) / FADE;
+        if (i < FADE)           sample *= i / FADE;
+        if (i > seg.len - FADE) sample *= (seg.len - i) / FADE;
         outD[writePos + i] = sample;
       }
     }
-    // Gap is pure silence — writePos advances past len + gap
-    writePos += seg.len + FIXED_GAP;
-    // The gap region is already zero-filled by default in the new buffer
+    writePos += seg.len;
   });
 
   // ── PLOSIVE LIMITER (T, D, P, B) ──
