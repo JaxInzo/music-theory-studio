@@ -617,6 +617,90 @@ function buildCleanBuffer(decisions, rawBuf) {
     }
   }
 
+  // ── FINAL PASS: COLLAPSE ALL SILENCE GAPS > 150ms ──
+  // This is the safety net — whatever upstream logic produces,
+  // no silence gap in the final output will exceed 150ms
+  var MAX_SILENCE = Math.floor(sr * 0.15); // 150ms absolute maximum
+  var SIL_AMP     = 0.008; // amplitude threshold for silence detection
+  var fadeSamp    = Math.floor(sr * 0.006); // 6ms crossfade
+
+  // Use channel 0 to detect silence, apply to all channels
+  var ch0 = outBuf.getChannelData(0);
+  // Find all silence regions
+  var silRegions = [];
+  var inSil = false;
+  var silStart = 0;
+  var scanWin = Math.floor(sr * 0.005); // 5ms scan
+  for (var i = 0; i < ch0.length - scanWin; i += scanWin) {
+    var mx = 0;
+    for (var j = 0; j < scanWin; j++) { var a = Math.abs(ch0[i+j]); if (a > mx) mx = a; }
+    if (mx < SIL_AMP && !inSil) { inSil = true; silStart = i; }
+    else if (mx >= SIL_AMP && inSil) {
+      var silLen = i - silStart;
+      if (silLen > MAX_SILENCE) silRegions.push({ start: silStart, end: i, len: silLen });
+      inSil = false;
+    }
+  }
+
+  // For each over-long silence: build a new buffer with that silence collapsed to 150ms
+  if (silRegions.length > 0) {
+    console.log('Collapsing ' + silRegions.length + ' over-long silences');
+
+    // Calculate new buffer length
+    var reduction = silRegions.reduce(function(sum, r) { return sum + r.len - MAX_SILENCE; }, 0);
+    var newLen = outBuf.length - reduction;
+    var newCtx = new OfflineAudioContext(ch, newLen, sr);
+    var newBuf = newCtx.createBuffer(ch, newLen, sr);
+
+    // Copy with gaps collapsed
+    var readPos = 0;
+    var writePos2 = 0;
+    var regionIdx = 0;
+
+    while (readPos < outBuf.length && writePos2 < newLen) {
+      var nextRegion = silRegions[regionIdx];
+      var copyUntil = nextRegion ? nextRegion.start : outBuf.length;
+
+      // Copy speech up to next silence region
+      var toCopy = Math.min(copyUntil - readPos, newLen - writePos2);
+      for (var c = 0; c < ch; c++) {
+        var src = outBuf.getChannelData(c);
+        var dst = newBuf.getChannelData(c);
+        for (var i = 0; i < toCopy; i++) dst[writePos2 + i] = src[readPos + i];
+      }
+      writePos2 += toCopy;
+      readPos += toCopy;
+
+      if (nextRegion && readPos >= nextRegion.start) {
+        // Write MAX_SILENCE of silence (already zeros), apply crossfades
+        for (var c = 0; c < ch; c++) {
+          var dst = newBuf.getChannelData(c);
+          var src = outBuf.getChannelData(c);
+          // Fade out into silence
+          for (var i = 0; i < fadeSamp && writePos2 - fadeSamp + i < newLen; i++) {
+            var idx = writePos2 - fadeSamp + i;
+            if (idx >= 0) dst[idx] *= (fadeSamp - i) / fadeSamp;
+          }
+          // Silence gap (zeros)
+          for (var i = 0; i < MAX_SILENCE && writePos2 + i < newLen; i++) dst[writePos2 + i] = 0;
+          // Fade in after silence
+          for (var i = 0; i < fadeSamp; i++) {
+            var srcIdx = nextRegion.end + i;
+            var dstIdx = writePos2 + MAX_SILENCE + i;
+            if (srcIdx < outBuf.length && dstIdx < newLen) {
+              dst[dstIdx] = src[srcIdx] * (i / fadeSamp);
+            }
+          }
+        }
+        writePos2 += MAX_SILENCE;
+        readPos = nextRegion.end;
+        regionIdx++;
+      }
+    }
+
+    return newBuf;
+  }
+
   return outBuf;
 }
 
