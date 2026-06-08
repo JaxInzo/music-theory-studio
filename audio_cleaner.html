@@ -112,24 +112,20 @@
     <div class="card-title">API Keys</div>
     <div class="grid2">
       <div class="field">
-        <label for="geminiKey">Gemini API key — script analysis</label>
+        <label for="geminiKey">Groq API key — transcription &amp; analysis</label>
         <div class="pw-wrap">
-          <input type="password" id="geminiKey" placeholder="AIzaSy..." oninput="saveAndCheck()">
+          <input type="password" id="geminiKey" placeholder="gsk_..." oninput="syncGroqKey(this.value)">
           <button class="pw-toggle" onclick="togglePw('geminiKey','eyeG')" type="button">
             <svg id="eyeG" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
-        <p style="font-size:11px;color:var(--text3);margin-top:4px;"><a href="https://aistudio.google.com" target="_blank" style="color:var(--gold);text-decoration:none;">aistudio.google.com</a> — free</p>
+        <p style="font-size:11px;color:var(--text3);margin-top:4px;"><a href="https://console.groq.com" target="_blank" style="color:var(--gold);text-decoration:none;">console.groq.com</a> — free, no daily quota</p>
       </div>
       <div class="field">
-        <label for="groqKey">Groq API key — transcription</label>
-        <div class="pw-wrap">
-          <input type="password" id="groqKey" placeholder="gsk_..." oninput="saveAndCheck()">
-          <button class="pw-toggle" onclick="togglePw('groqKey','eyeQ')" type="button">
-            <svg id="eyeQ" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
+        <div style="background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;font-size:13px;color:var(--text3);line-height:1.6;margin-top:22px;">
+          One Groq key handles everything — Whisper transcription and Llama script analysis. No Gemini needed.
         </div>
-        <p style="font-size:11px;color:var(--text3);margin-top:4px;"><a href="https://console.groq.com" target="_blank" style="color:var(--gold);text-decoration:none;">console.groq.com</a> — free</p>
+        <input type="hidden" id="groqKey">
       </div>
     </div>
   </div>
@@ -202,8 +198,8 @@ var audioCtx = null;
 // ── INIT ───────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', function() {
   // Load saved keys and script
-  var gk = localStorage.getItem('ac_gemini'); if (gk) document.getElementById('geminiKey').value = gk;
-  var qk = localStorage.getItem('ac_groq');   if (qk) document.getElementById('groqKey').value = qk;
+  var gk = localStorage.getItem('ac_groq');
+  if (gk) { document.getElementById('geminiKey').value = gk; document.getElementById('groqKey').value = gk; }
   var sc = localStorage.getItem('ac_script'); if (sc) document.getElementById('scriptBox').value = sc;
 
   // Wire up upload area click
@@ -243,9 +239,16 @@ function togglePw(inputId, iconId) {
 }
 
 // ── SAVE & CHECK ───────────────────────────────────────────────
+function syncGroqKey(val) {
+  document.getElementById('groqKey').value = val;
+  localStorage.setItem('ac_groq', val);
+  checkReady();
+}
+
 function saveAndCheck() {
-  localStorage.setItem('ac_gemini', document.getElementById('geminiKey').value);
-  localStorage.setItem('ac_groq',   document.getElementById('groqKey').value);
+  var val = document.getElementById('geminiKey').value;
+  document.getElementById('groqKey').value = val;
+  localStorage.setItem('ac_groq', val);
   localStorage.setItem('ac_script', document.getElementById('scriptBox').value);
   checkReady();
 }
@@ -253,9 +256,8 @@ function saveAndCheck() {
 function checkReady() {
   var hasFile   = !!selectedFile;
   var hasScript = document.getElementById('scriptBox').value.trim().length > 20;
-  var hasGemini = document.getElementById('geminiKey').value.trim().length > 5;
-  var hasGroq   = document.getElementById('groqKey').value.trim().length > 5;
-  document.getElementById('cleanBtn').disabled = !(hasFile && hasScript && hasGemini && hasGroq);
+  var hasGroq   = document.getElementById('geminiKey').value.trim().length > 5;
+  document.getElementById('cleanBtn').disabled = !(hasFile && hasScript && hasGroq);
 }
 
 // ── FILE SELECTION ─────────────────────────────────────────────
@@ -340,19 +342,24 @@ async function transcribe(file) {
 }
 
 // ── GEMINI EDIT DECISIONS ──────────────────────────────────────
-async function callGemini(key, prompt) {
-  var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key, {
+async function callGroqText(key, prompt) {
+  var resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 4000, temperature: 0.1 } })
+    headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.1,
+      max_tokens: 4000
+    })
   });
   if (!resp.ok) {
     var err = await resp.json().catch(function() { return {}; });
-    throw new Error(err.error && err.error.message ? err.error.message : 'Gemini error ' + resp.status);
+    throw new Error(err.error && err.error.message ? err.error.message : 'Groq error ' + resp.status);
   }
   var data = await resp.json();
-  if (!data.candidates || !data.candidates[0]) throw new Error('No response from Gemini — you may have hit your daily quota.');
-  return data.candidates[0].content.parts[0].text;
+  if (!data.choices || !data.choices[0]) throw new Error('No response from Groq.');
+  return data.choices[0].message.content;
 }
 
 function extractJSON(raw) {
@@ -374,15 +381,15 @@ async function getDecisions(transcription, script) {
 
   var prompt = 'You are an audio editor. A voiceover was recorded with mistakes. Compare transcription segments to the script and decide which to keep.\n\nSCRIPT:\n' + script + '\n\nSEGMENTS (numbered 0 to ' + (segments.length-1) + '):\n' + segList + '\n\nRules:\n- Keep segments that match the script cleanly\n- Cut false starts, repeated phrases, filler words (um uh like)\n- For repeated attempts at same sentence: ONLY keep the LAST attempt, cut all earlier ones\n- Keep ALL segments that form the final clean read-through\n\nReturn ONLY a JSON array with one entry per segment. No markdown:\n[{"index":0,"keep":true,"reason":"clean"},{"index":1,"keep":false,"reason":"repeat"}]';
 
-  var raw = await callGemini(key, prompt);
+  var raw = await callGroqText(key, prompt);
   var decisions = extractJSON(raw);
 
   if (!decisions) {
-    var raw2 = await callGemini(key, 'Return ONLY a JSON array, no other text. One object per segment index 0-' + (segments.length-1) + '. Format: [{"index":0,"keep":true,"reason":"..."},...]\n\nSegments:\n' + segList + '\n\nScript:\n' + script);
+    var raw2 = await callGroqText(key, 'Return ONLY a JSON array, no other text. One object per segment index 0-' + (segments.length-1) + '. Format: [{"index":0,"keep":true,"reason":"..."},...]\n\nSegments:\n' + segList + '\n\nScript:\n' + script);
     decisions = extractJSON(raw2);
   }
 
-  if (!decisions) throw new Error('Gemini could not return valid JSON. Please try again.');
+  if (!decisions) throw new Error('Groq could not return valid JSON. Please try again.');
 
   // Map decisions back to segments by index, defaulting to keep=true if missing
   var decisionMap = {};
@@ -642,7 +649,7 @@ async function runCleaner() {
     var transcription = await transcribe(selectedFile);
 
     // Step 2: Get edit decisions
-    setProgress(45, 'Step 2 of 3 — Analysing mistakes against script with Gemini...');
+    setProgress(45, 'Step 2 of 3 — Analysing mistakes against script with Groq...');
     var decisions = await getDecisions(transcription, script);
 
     // Step 3: Build clean audio
