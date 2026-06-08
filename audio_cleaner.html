@@ -356,48 +356,50 @@ async function callGemini(key, prompt) {
 }
 
 function extractJSON(raw) {
-  // Strip markdown fences
   raw = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
-  // Find outermost array
   var start = raw.indexOf('[');
   var end   = raw.lastIndexOf(']');
   if (start === -1 || end === -1) return null;
-  raw = raw.slice(start, end + 1);
-  // Fix trailing commas
-  raw = raw.replace(/,\s*\]/g, ']').replace(/,\s*\}/g, '}');
+  raw = raw.slice(start, end + 1).replace(/,\s*\]/g, ']').replace(/,\s*\}/g, '}');
   try { return JSON.parse(raw); } catch(e) { return null; }
 }
 
 async function getDecisions(transcription, script) {
   var key = document.getElementById('geminiKey').value.trim();
+  var segments = transcription.segments;
 
-  var segList = transcription.segments.length > 0
-    ? transcription.segments.map(function(s, i) {
-        return i + ': [' + s.start.toFixed(2) + 's-' + s.end.toFixed(2) + 's] ' + s.text;
-      }).join('\n')
-    : transcription.text;
+  var segList = segments.map(function(s, i) {
+    return i + ': ' + s.text;
+  }).join('\n');
 
-  // Primary prompt — strict JSON only
-  var prompt = 'Audio editor task. Compare transcription to script. Output ONLY a raw JSON array, no markdown, no explanation, nothing else before or after the array.\n\nSCRIPT:\n' + script + '\n\nTRANSCRIPTION:\n' + segList + '\n\nJSON array format:\n[{"index":0,"text":"spoken text","keep":true,"isBest":true,"reason":"clean take"},{"index":1,"text":"spoken text","keep":false,"isBest":false,"reason":"earlier attempt"}]\n\nRules: keep last/best version of repeated sentences, cut false starts and filler words, mark best take with isBest:true, include every segment index. Output the JSON array ONLY.';
+  var prompt = 'You are an audio editor. A voiceover was recorded with mistakes. Compare transcription segments to the script and decide which to keep.\n\nSCRIPT:\n' + script + '\n\nSEGMENTS (numbered 0 to ' + (segments.length-1) + '):\n' + segList + '\n\nRules:\n- Keep segments that match the script cleanly\n- Cut false starts, repeated phrases, filler words (um uh like)\n- For repeated attempts at same sentence: ONLY keep the LAST attempt, cut all earlier ones\n- Keep ALL segments that form the final clean read-through\n\nReturn ONLY a JSON array with one entry per segment. No markdown:\n[{"index":0,"keep":true,"reason":"clean"},{"index":1,"keep":false,"reason":"repeat"}]';
 
   var raw = await callGemini(key, prompt);
   var decisions = extractJSON(raw);
 
-  // If first attempt failed, try a simpler fallback prompt
   if (!decisions) {
-    var fallbackPrompt = 'Return ONLY a JSON array. Each item: {"index": number, "text": "...", "keep": true or false, "isBest": true or false, "reason": "..."}.\n\nFor each segment below, decide keep=true if it is a clean take matching the script, keep=false if it is a mistake or repeat. Mark isBest=true on the single best take of each repeated sentence.\n\nScript: ' + script.slice(0, 500) + '\n\nSegments:\n' + segList + '\n\nJSON array only, nothing else:';
-    var raw2 = await callGemini(key, fallbackPrompt);
+    var raw2 = await callGemini(key, 'Return ONLY a JSON array, no other text. One object per segment index 0-' + (segments.length-1) + '. Format: [{"index":0,"keep":true,"reason":"..."},...]\n\nSegments:\n' + segList + '\n\nScript:\n' + script);
     decisions = extractJSON(raw2);
   }
 
-  if (!decisions) throw new Error('Gemini could not return valid JSON after two attempts. Please try again — this usually resolves itself.');
+  if (!decisions) throw new Error('Gemini could not return valid JSON. Please try again.');
 
-  // Attach timestamps
-  decisions.forEach(function(d) {
-    var seg = transcription.segments[d.index];
-    if (seg) { d.startTime = seg.start; d.endTime = seg.end; }
+  // Map decisions back to segments by index, defaulting to keep=true if missing
+  var decisionMap = {};
+  decisions.forEach(function(d) { decisionMap[d.index] = d; });
+
+  // Build final decisions with REAL timestamps from Whisper segments
+  return segments.map(function(seg, i) {
+    var dec = decisionMap[i] || { keep: true, reason: 'no decision — defaulting to keep' };
+    return {
+      index: i,
+      text: seg.text,
+      startTime: seg.start,
+      endTime: seg.end,
+      keep: dec.keep !== false, // default to keep if unclear
+      reason: dec.reason || ''
+    };
   });
-  return decisions;
 }
 
 // ── BUILD CLEAN AUDIO ──────────────────────────────────────────
@@ -406,77 +408,78 @@ function buildCleanBuffer(decisions, rawBuf) {
   var ch = rawBuf.numberOfChannels;
   var totalDur = rawBuf.duration;
 
-  // Collect keep segments with real timestamps where available
-  var keepSegs = [];
-  decisions.forEach(function(d) {
-    if (!d.keep) return;
-    var start, end;
-    if (d.startTime !== undefined && d.endTime !== undefined) {
-      start = Math.max(0, d.startTime - 0.04);
-      end   = Math.min(totalDur, d.endTime + 0.06);
-    } else {
-      // Proportional fallback
-      var allText = decisions.map(function(x) { return x.text || ''; }).join(' ');
-      var ratio = (d.text || '').length / Math.max(allText.length, 1);
-      var idx = decisions.indexOf(d);
-      var cursorChars = decisions.slice(0, idx).reduce(function(s, x) { return s + (x.text || '').length; }, 0);
-      start = (cursorChars / Math.max(allText.length, 1)) * totalDur;
-      end   = start + ratio * totalDur;
-    }
-    keepSegs.push({ start: start, end: end });
-  });
+  // Log decision summary for debugging
+  var kept = decisions.filter(function(d) { return d.keep; });
+  var cut  = decisions.filter(function(d) { return !d.keep; });
+  console.log('Decisions: keeping ' + kept.length + ' of ' + decisions.length + ' segments, cutting ' + cut.length);
+  cut.forEach(function(d) { console.log('  CUT [' + d.startTime.toFixed(1) + 's]: ' + d.text.slice(0,60)); });
 
-  if (keepSegs.length === 0) throw new Error('No segments kept — please try again.');
+  // Build keep segments from REAL Whisper timestamps
+  var keepSegs = decisions
+    .filter(function(d) { return d.keep; })
+    .map(function(d) {
+      return {
+        start: Math.max(0, d.startTime - 0.03),
+        end:   Math.min(totalDur, d.endTime + 0.05),
+        text:  d.text
+      };
+    });
 
-  // Merge nearby segments
+  if (keepSegs.length === 0) throw new Error('No segments kept — something went wrong.');
+
+  // Sort by start time
   keepSegs.sort(function(a, b) { return a.start - b.start; });
+
+  // Merge overlapping or very close segments (within 0.2s)
   var merged = [];
   keepSegs.forEach(function(seg) {
-    if (merged.length && seg.start - merged[merged.length-1].end < 0.25) {
-      merged[merged.length-1].end = Math.max(merged[merged.length-1].end, seg.end);
-      merged[merged.length-1].text = (merged[merged.length-1].text || '') + ' ' + (seg.text || '');
+    if (merged.length && seg.start - merged[merged.length-1].end < 0.20) {
+      merged[merged.length-1].end  = Math.max(merged[merged.length-1].end, seg.end);
+      merged[merged.length-1].text = (merged[merged.length-1].text || '') + ' ' + seg.text;
     } else {
-      merged.push({ start: seg.start, end: seg.end, text: seg.text || '' });
+      merged.push({ start: seg.start, end: seg.end, text: seg.text });
     }
   });
 
-  // Calculate output size with VARIABLE natural gaps
-  // Sentence endings (.?!) get a longer pause, mid-sentence gets shorter
-  function naturalGap(text, sr) {
+  console.log('Merged into ' + merged.length + ' contiguous segments');
+  merged.forEach(function(s) { console.log('  KEEP [' + s.start.toFixed(1) + 's-' + s.end.toFixed(1) + 's]: ' + s.text.slice(0,60)); });
+
+  // Variable natural gaps between segments
+  function naturalGap(text) {
     var t = (text || '').trim();
-    if (/[.?!]$/.test(t)) return Math.floor(sr * 0.22); // 220ms after sentence end
-    if (/[,;:]$/.test(t)) return Math.floor(sr * 0.12); // 120ms after comma/pause
-    return Math.floor(sr * 0.08);                        // 80ms between close segments
+    if (/[.?!]$/.test(t)) return Math.floor(sr * 0.20);
+    if (/[,;:]$/.test(t)) return Math.floor(sr * 0.10);
+    return Math.floor(sr * 0.07);
   }
 
-  // Calculate output size
+  // Calculate output length
   var outLen = merged.reduce(function(sum, seg) {
-    return sum + Math.floor((seg.end - seg.start) * sr) + naturalGap(seg.text, sr);
+    return sum + Math.floor((seg.end - seg.start) * sr) + naturalGap(seg.text);
   }, 0);
-  if (outLen <= 0) throw new Error('Output buffer empty.');
+  if (outLen <= 0) throw new Error('Output buffer is empty.');
 
-  // Create output buffer
+  // Build output buffer
   var offCtx = new OfflineAudioContext(ch, outLen, sr);
-  var outBuf = offCtx.createBuffer(ch, outLen, sr);
+  var outBuf  = offCtx.createBuffer(ch, outLen, sr);
   var writePos = 0;
 
   merged.forEach(function(seg) {
-    var s0 = Math.floor(seg.start * sr);
-    var s1 = Math.min(Math.floor(seg.end * sr), rawBuf.length);
+    var s0  = Math.floor(seg.start * sr);
+    var s1  = Math.min(Math.floor(seg.end * sr), rawBuf.length);
     var len = s1 - s0;
     if (len <= 0) return;
-    var fade = Math.min(Math.floor(0.008 * sr), Math.floor(len / 4)); // 8ms fade — subtle, won't clip sibilants
+    var fade = Math.min(Math.floor(0.008 * sr), Math.floor(len / 4));
     for (var c = 0; c < ch; c++) {
       var inD  = rawBuf.getChannelData(c);
       var outD = outBuf.getChannelData(c);
       for (var i = 0; i < len && writePos + i < outLen; i++) {
         var sample = inD[s0 + i] || 0;
-        if (i < fade) sample *= i / fade;
-        if (i > len - fade) sample *= (len - i) / fade;
+        if (i < fade)        sample *= i / fade;
+        if (i > len - fade)  sample *= (len - i) / fade;
         outD[writePos + i] = sample;
       }
     }
-    writePos += len + naturalGap(seg.text, sr);
+    writePos += len + naturalGap(seg.text);
   });
 
   // Normalize to 88%
@@ -493,33 +496,19 @@ function buildCleanBuffer(decisions, rawBuf) {
     }
   }
 
-  // Gentle noise gate — lower threshold so sibilants (s, sh, th) are preserved
-  // Use a longer hold time so tails of words don't get clipped
-  var gate = 0.004;              // much lower threshold — preserves soft sounds
-  var holdMs = Math.floor(sr * 0.18); // 180ms hold — long enough for sibilant tails
-  var releaseMs = Math.floor(sr * 0.06); // 60ms gradual release instead of hard cut
+  // Gentle noise gate with gradual release to preserve sibilants
+  var gate       = 0.004;
+  var holdSamp   = Math.floor(sr * 0.18);
+  var relSamp    = Math.floor(sr * 0.06);
   for (var c = 0; c < outBuf.numberOfChannels; c++) {
     var d = outBuf.getChannelData(c);
-    var hc = 0;
-    var releasing = false;
-    var releaseCount = 0;
+    var hc = 0, releasing = false, rc = 0;
     for (var i = 0; i < d.length; i++) {
-      if (Math.abs(d[i]) > gate) {
-        hc = holdMs;
-        releasing = false;
-        releaseCount = 0;
-      } else if (hc > 0) {
-        hc--;
-      } else if (!releasing) {
-        releasing = true;
-        releaseCount = releaseMs;
-      } else if (releaseCount > 0) {
-        // Gradual fade out instead of hard cut — preserves sibilant decay
-        d[i] *= (releaseCount / releaseMs);
-        releaseCount--;
-      } else {
-        d[i] = 0;
-      }
+      if (Math.abs(d[i]) > gate) { hc = holdSamp; releasing = false; rc = 0; }
+      else if (hc > 0)           { hc--; }
+      else if (!releasing)       { releasing = true; rc = relSamp; }
+      else if (rc > 0)           { d[i] *= rc / relSamp; rc--; }
+      else                       { d[i] = 0; }
     }
   }
 
@@ -607,12 +596,11 @@ function renderResults(decisions) {
 
   document.getElementById('cutList').innerHTML = decisions.map(function(d) {
     var cls   = d.keep ? 'keep' : 'remove';
-    var badge = d.isBest ? 'best' : (d.keep ? 'keep' : 'remove');
-    var label = d.isBest ? '✓ BEST' : (d.keep ? '✓ KEEP' : '✕ CUT');
-    var time  = d.startTime !== undefined ? d.startTime.toFixed(1) + 's' : '';
+    var label = d.keep ? '✓ KEEP' : '✕ CUT';
+    var time  = d.startTime !== undefined ? '[' + d.startTime.toFixed(1) + 's–' + d.endTime.toFixed(1) + 's]' : '';
     return '<div class="cut-item ' + cls + '">'
-      + '<span class="badge ' + badge + '">' + label + '</span>'
-      + '<div><div class="cut-text">' + escHtml(d.text || '') + (time ? ' <span style="font-size:10px;color:var(--text3);">[' + time + ']</span>' : '') + '</div>'
+      + '<span class="badge ' + cls + '">' + label + '</span>'
+      + '<div><div class="cut-text">' + time + ' ' + escHtml(d.text || '') + '</div>'
       + '<div class="cut-reason">' + escHtml(d.reason || '') + '</div></div>'
       + '</div>';
   }).join('');
