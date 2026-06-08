@@ -340,50 +340,64 @@ async function transcribe(file) {
 }
 
 // ── GEMINI EDIT DECISIONS ──────────────────────────────────────
+async function callGemini(key, prompt) {
+  var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 4000, temperature: 0.1 } })
+  });
+  if (!resp.ok) {
+    var err = await resp.json().catch(function() { return {}; });
+    throw new Error(err.error && err.error.message ? err.error.message : 'Gemini error ' + resp.status);
+  }
+  var data = await resp.json();
+  if (!data.candidates || !data.candidates[0]) throw new Error('No response from Gemini — you may have hit your daily quota.');
+  return data.candidates[0].content.parts[0].text;
+}
+
+function extractJSON(raw) {
+  // Strip markdown fences
+  raw = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+  // Find outermost array
+  var start = raw.indexOf('[');
+  var end   = raw.lastIndexOf(']');
+  if (start === -1 || end === -1) return null;
+  raw = raw.slice(start, end + 1);
+  // Fix trailing commas
+  raw = raw.replace(/,\s*\]/g, ']').replace(/,\s*\}/g, '}');
+  try { return JSON.parse(raw); } catch(e) { return null; }
+}
+
 async function getDecisions(transcription, script) {
   var key = document.getElementById('geminiKey').value.trim();
 
   var segList = transcription.segments.length > 0
     ? transcription.segments.map(function(s, i) {
-        return i + ': [' + s.start.toFixed(2) + 's–' + s.end.toFixed(2) + 's] ' + s.text;
+        return i + ': [' + s.start.toFixed(2) + 's-' + s.end.toFixed(2) + 's] ' + s.text;
       }).join('\n')
     : transcription.text;
 
-  var prompt = 'You are an audio editor for a YouTube music theory channel. A voiceover was recorded with mistakes and retakes. Compare the transcription against the script and decide what to keep or cut.\n\nSCRIPT:\n' + script + '\n\nTRANSCRIPTION SEGMENTS:\n' + segList + '\n\nRULES:\n- Keep the last and best version of any repeated sentence\n- Cut false starts, repeated phrases, filler words (um, uh, like)\n- If two takes are equal, keep the later one\n- Every segment index must appear in output\n\nReturn ONLY a JSON array, nothing else, no markdown:\n[{"index":0,"text":"...","keep":true,"isBest":true,"reason":"clean take"},{"index":1,"text":"...","keep":false,"isBest":false,"reason":"earlier attempt"}]';
+  // Primary prompt — strict JSON only
+  var prompt = 'Audio editor task. Compare transcription to script. Output ONLY a raw JSON array, no markdown, no explanation, nothing else before or after the array.\n\nSCRIPT:\n' + script + '\n\nTRANSCRIPTION:\n' + segList + '\n\nJSON array format:\n[{"index":0,"text":"spoken text","keep":true,"isBest":true,"reason":"clean take"},{"index":1,"text":"spoken text","keep":false,"isBest":false,"reason":"earlier attempt"}]\n\nRules: keep last/best version of repeated sentences, cut false starts and filler words, mark best take with isBest:true, include every segment index. Output the JSON array ONLY.';
 
-  var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 4000 } })
+  var raw = await callGemini(key, prompt);
+  var decisions = extractJSON(raw);
+
+  // If first attempt failed, try a simpler fallback prompt
+  if (!decisions) {
+    var fallbackPrompt = 'Return ONLY a JSON array. Each item: {"index": number, "text": "...", "keep": true or false, "isBest": true or false, "reason": "..."}.\n\nFor each segment below, decide keep=true if it is a clean take matching the script, keep=false if it is a mistake or repeat. Mark isBest=true on the single best take of each repeated sentence.\n\nScript: ' + script.slice(0, 500) + '\n\nSegments:\n' + segList + '\n\nJSON array only, nothing else:';
+    var raw2 = await callGemini(key, fallbackPrompt);
+    decisions = extractJSON(raw2);
+  }
+
+  if (!decisions) throw new Error('Gemini could not return valid JSON after two attempts. Please try again — this usually resolves itself.');
+
+  // Attach timestamps
+  decisions.forEach(function(d) {
+    var seg = transcription.segments[d.index];
+    if (seg) { d.startTime = seg.start; d.endTime = seg.end; }
   });
-
-  if (!resp.ok) {
-    var err = await resp.json().catch(function() { return {}; });
-    throw new Error(err.error && err.error.message ? err.error.message : 'Gemini error ' + resp.status);
-  }
-
-  var data = await resp.json();
-  if (!data.candidates || !data.candidates[0]) throw new Error('No response from Gemini — you may have hit your daily quota.');
-
-  var raw = data.candidates[0].content.parts[0].text;
-  // Extract JSON array robustly
-  raw = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
-  var start = raw.indexOf('[');
-  var end = raw.lastIndexOf(']');
-  if (start === -1 || end === -1) throw new Error('Gemini returned unexpected format — please try again.');
-  raw = raw.slice(start, end + 1).replace(/,\s*\]/g, ']').replace(/,\s*\}/g, '}');
-
-  try {
-    var decisions = JSON.parse(raw);
-    // Attach timestamps
-    decisions.forEach(function(d) {
-      var seg = transcription.segments[d.index];
-      if (seg) { d.startTime = seg.start; d.endTime = seg.end; }
-    });
-    return decisions;
-  } catch(e) {
-    throw new Error('Could not parse Gemini response — please try again.');
-  }
+  return decisions;
 }
 
 // ── BUILD CLEAN AUDIO ──────────────────────────────────────────
