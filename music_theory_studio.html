@@ -1,3 +1,136 @@
+<!--
+================================================================================
+MUSICISEASY — COMPLETE NOTATION ENGINE REFERENCE
+JaxInzo | github.com/JaxInzo/music-theory-studio
+All values locked through iterative visual testing
+================================================================================
+
+STAFF CONSTANTS (SLS=12 preview, SLS=24 output)
+  Treble: L5=60, L4=72, L3=84(mid), L2=96, L1=108
+  Bass:   L5=170, L4=182, L3=194(mid), L2=206, L1=218
+  ly(n) = ST+(5-n)*SLS | sy(n) = ly(n)-SLS/2
+  Grand staff center: y=139
+
+CLEFS
+  Treble: Unicode 𝄞, font-size=72, x=34, y=107. Staff lines ON TOP.
+  Bass: SVG path, translate(25,144.2893) scale(0.087751). Staff lines ON TOP.
+
+NOTE HEADS
+  NRX=7, NRY=6, NROT=-20, WROT=+78
+  Whole: outer ellipse + inner cutout rotate(+78), no stem
+  Half: outer+inner both at -20, inner rx=4.5 ry=1.8
+  Quarter/flagged: filled ellipse at -20
+
+STEMS
+  UP: cx+NRX-1, tip=cy-SH | DOWN: cx-NRX+1, tip=cy+SH | SH=SLS*2.5=30
+  noteY >= midY → UP | noteY < midY → DOWN | mid tie → DOWN
+
+FLAGS (filled wedge bezier) — gap=5, len=30, startGap=5, FGAP=10
+  Always curve RIGHT. Stem UP: stack DOWN from tip. Stem DOWN: stack UP from tip.
+  8th=1, 16th=2, 32nd=3, 64th=4 flags
+  UP:   M sx,ey C sx+7.5,ey+9 sx+8,ey+18 sx+5,ey+30 C sx+7,ey+16.5 sx+6.5,ey+6 sx,ey+5 Z
+  DOWN: M sx,ey C sx+7.5,ey-9 sx+8,ey-18 sx+5,ey-30 C sx+7,ey-16.5 sx+6.5,ey-6 sx,ey-5 Z
+
+BEAMING
+  BEAM_W=5px, BEAM_GAP=7px. Furthest from mid sets direction.
+  Constant melodic direction → diagonal beam. Mixed → flat horizontal.
+  Next power of two rule: stems extend to meet beam.
+  Partial beams for mixed values (~half note spacing stubs).
+
+DOTS: r=1.5, NRX+5 right. On line → shift up SLS/2. Every chord note gets dot.
+
+TREBLE NOTE POSITIONS (SLS=12)
+  C4=126, D4=120, E4=108(L1), F4=102, G4=96(L2), A4=90, B4=84(L3/mid)
+  C5=78, D5=72(L4), E5=66, F5=60(L5), G5=54
+
+BASS NOTE POSITIONS (SLS=12)
+  G2=218(L1), A2=212, B2=206(L2), C3=200, D3=194(L3/mid), E3=188, F3=182(L4)
+  G3=176, A3=170(L5), B3=164, C4=158(ledger1), D4=152, E4=146(ledger2)
+  F4=140, G4=134(ledger3), A4=128, B4=122(ledger4), C5=116
+
+LEDGER LINES: stubs NRX+4 each side. Accumulate going further from staff.
+  Staff lines and stems pass through ledger lines. NRY=6=SLS/2 ensures tangency.
+
+CHORDS
+  One stem, direction by furthest from midline.
+  2nds: lower stays on stem side, upper flips. Draw: accidentals→heads→stem.
+  Standard voicing = root position, stacked thirds, closest to middle C.
+  Without "standard voicing" → most convenient staff position.
+  Thirds always skip one position = 12px apart (SLS=12).
+
+CHORD TYPES
+  Major: M3+m3 | Minor: m3+M3 | Dim: m3+m3 | Aug: M3+M3
+  Dom7: maj+m7 | Maj7: maj+M7 | Min7: min+m7 | Dim7: dim+d7 | Half-dim7: dim+m7
+  Maj6=min7 enharmonic | Sus2: R+2+5 | Sus4: R+4+5
+  Extensions: 9th, 11th, 13th stack thirds above 7th
+
+ACCIDENTALS (text-anchor=end, left of notehead, x=note_cx-NRX-2)
+  Sharp ♯:      font-size=28, y=note_y+9
+  Flat ♭:       font-size=28, y=note_y+4
+  Natural ♮:    font-size=28, y=note_y+9
+  Double sharp 𝄪: font-size=42, y=note_y+24
+  Double flat 𝄫:  font-size=26, y=note_y+4
+  Courtesy (♮): font-size=20, y=note_y+8
+  Staff lines ON TOP of accidentals.
+  Chord stagger: ACC_STAGGER=12px. Top closest, lower step LEFT 12px each.
+  Far-apart notes (>2 SLS) can share column. 2nd flip: accidental follows head.
+  Rules: ascending→sharps, descending→flats. Match key. Octave specific.
+
+ARTICULATIONS
+  Stem up→below notehead | Stem down→above notehead
+  Staccato: r=1.5, outside staff, y=note_y+SLS*0.93
+  Tenuto: bold bar stroke-width=2.2, inside staff, y=note_y+SLS*0.83
+  Accent(>): wedge opens left, outside staff, 13px wide
+  Marcato(^): triangle, ALWAYS above outside staff. M x-5,54 L x,46 L x+5,54
+  Fermata: ALTERATION — always above outside staff (marcato height). Flips below only on collision.
+  Slur: arc, majority stem direction (mixed→above)
+
+DYNAMICS: italic serif font-size=14. Grand staff both→center y=139.
+  ppp pp p mp mf f ff fff sfz — all same size.
+
+TEMPO: above staff (grand: center between staves). Modifiers+dashed line+tick.
+  Grave→Largo→Larghetto→Adagio→Adagietto→Andante→Moderato→Allegretto→Allegro→Vivace→Presto→Prestissimo
+
+TIME SIGNATURES: font-size=36 serif, no fraction line. Top=upper half, bottom=lower half.
+  After clef and key signature. Common=𝄐(4/4), Cut=𝄑(2/2).
+
+TUPLETS
+  Triplets in SIMPLE meter (3 in time of 2). Duplets in COMPOUND meter (2 in time of 3).
+  Number+bracket OUTSIDE staff (above L5 or below L1). Same beaming rules apply.
+  6/8→duplet marked "2" | 4/4→triplet marked "3"
+
+KEY SIGNATURES (placed after clef, before time sig)
+  Sharps: F# C# G# D# A# E# B# | Flats: Bb Eb Ab Db Gb Cb Fb
+  Major keys: C(0) G(1#) D(2#) A(3#) E(4#) B(5#) F#(6#) C#(7#)
+              F(1b) Bb(2b) Eb(3b) Ab(4b) Db(5b) Gb(6b) Cb(7b)
+  Treble sharps y: F#=60 C#=78 G#=54 D#=72 A#=90 E#=66 B#=84
+  Treble flats  y: Bb=84 Eb=66 Ab=90 Db=72 Gb=96 Cb=78 Fb=102
+  Bass sharps   y: F#=182 C#=200 G#=176 D#=194 A#=212 E#=188 B#=206
+  Bass flats    y: Bb=206 Eb=188 Ab=212 Db=194 Gb=218 Cb=200 Fb=224
+  Apply to ALL octaves for entire piece. Natural cancels for that note/bar only.
+
+BARLINES (treble L5=60 to bass L1=218, 1px gap between thick/thin)
+  Single: thin 1.5 | Double: two thin 4px apart | Final: thin+1px+thick(6)
+  Start repeat: thick+1px+thin+dots | End repeat: dots+thin+1px+thick
+  End+Start: dots+thin+1px+thick+1px+thin+dots
+  Repeat dots: Treble y=78(L3-L4) and y=90(L2-L3)
+               Bass   y=188(L3-L4) and y=200(L2-L3)
+  Staff lines touch RIGHT edge of thick bar, do NOT extend past it.
+
+NAVIGATION (all above treble staff)
+  Segno 𝄋 / Coda 𝄌: font-size=28, centered ON TOP of barline
+  D.C. / D.S. / al Fine / al 𝄌 / Fine: italic serif, right-aligned BEFORE barline
+  Grand staff: always above treble regardless of melody position.
+
+RESTS (fixed positions always)
+  Whole:    rect hanging DOWN from L4 (top=L4, height=7)
+  Half:     rect sitting ON TOP of L3 (bottom=L3, height=6)
+  Quarter:  𝄽 font-size=32, centered y~84
+  Eighth:   𝄾 font-size=44, y=98
+  16th:     𝄿 font-size=28 | 32nd: 𝅀 | 64th: 𝅁
+  Whole rest = full bar silence regardless of time signature. All rests can be dotted.
+================================================================================
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -508,6 +641,625 @@ async function transcribeAudio(audioFile){
   throw new Error('Unexpected Groq response: '+JSON.stringify(d).slice(0,120));
 }
 
+
+
+// ============================================================
+// NOTATION ENGINE — mathematically precise music theory SVG
+// ============================================================
+var NE=(function(){
+  var SLS=24,ST=280,SL=160,SW=960,NRX=7,NRY=4.5,SH=68;
+  function ly(n){return ST+(5-n)*SLS;}
+  function sy(n){return ST+(5-n)*SLS-SLS/2;}
+  var TMID=ly(3); // treble middle line y = B4 = line 3
+  var BMID=ly(3); // bass middle line y = same geometry
+
+  // TREBLE CLEF note positions — verified against continuous 11-line staff system
+  // L1=E4, L2=G4, L3=B4(mid/stem-down), L4=D5, L5=F5
+  // spaces: below L1=D4, L1-L2=F4, L2-L3=A4, L3-L4=C5, L4-L5=E5
+  // ledger below L1: C4 (middle C)
+  var TP={
+    'C4':ly(1)+SLS*1.5,  // ledger line below L1
+    'D4':ly(1)+SLS,      // space below L1
+    'E4':ly(1),          // L1 (bottom line)
+    'F4':sy(1),          // space L1-L2
+    'G4':ly(2),          // L2
+    'A4':sy(2),          // space L2-L3
+    'B4':ly(3),          // L3 (middle line) — stem DOWN
+    'C5':sy(3),          // space L3-L4
+    'D5':ly(4),          // L4
+    'E5':sy(4),          // space L4-L5
+    'F5':ly(5),          // L5 (top line)
+    'G5':ly(5)-SLS*0.5,  // space above L5
+    'A5':ly(5)-SLS,      // ledger above L5
+    'B5':ly(5)-SLS*1.5   // space above that ledger
+  };
+
+  // BASS CLEF note positions — verified against continuous 11-line staff system
+  // Bass L1=G2, L2=B2, L3=D3(mid/stem-down), L4=F3, L5=A3
+  // spaces: below L1=F2, L1-L2=A2, L2-L3=C3, L3-L4=E3, L4-L5=G3
+  // space above L5=B3, ledger above L5=C4 (middle C)
+  var BP={
+    'F2':ly(1)+SLS*1.5,  // space below L1
+    'G2':ly(1),          // L1 (bottom line)
+    'A2':sy(1),          // space L1-L2
+    'B2':ly(2),          // L2
+    'C3':sy(2),          // space L2-L3
+    'D3':ly(3),          // L3 (middle line) — stem DOWN
+    'E3':sy(3),          // space L3-L4
+    'F3':ly(4),          // L4
+    'G3':sy(4),          // space L4-L5
+    'A3':ly(5),          // L5 (top line)
+    'B3':ly(5)-SLS*0.5,  // space above L5
+    'C4':ly(5)-SLS,      // ledger above L5 = middle C
+    'D4':ly(5)-SLS*1.5,  // space above middle C ledger
+    'E4':ly(5)-SLS*2     // ledger above that
+  };
+
+  // Ledger lines: notes that need a short line through them
+  var TL={
+    'C4':[ly(1)+SLS*1.5],   // middle C ledger below treble L1
+    'A5':[ly(5)-SLS],       // ledger above treble L5
+    'B5':[ly(5)-SLS]        // same ledger
+  };
+  var BL={
+    'C4':[ly(5)-SLS],       // middle C ledger above bass L5
+    'E4':[ly(5)-SLS*2,ly(5)-SLS], // two ledgers above bass
+    'E2':[ly(1)+SLS*1.5]    // ledger below bass L1
+  };
+  var SCALES={'C major':['C4','D4','E4','F4','G4','A4','B4','C5'],'G major':['G4','A4','B4','C5','D5','E5','F#5','G5'],'D major':['D4','E4','F#4','G4','A4','B4','C#5','D5'],'F major':['F4','G4','A4','Bb4','C5','D5','E5','F5'],'A minor':['A4','B4','C5','D5','E5','F5','G5','A5'],'A natural minor':['A4','B4','C5','D5','E5','F5','G5','A5'],'E minor':['E4','F#4','G4','A4','B4','C5','D5','E5'],'C major pentatonic':['C4','D4','E4','G4','A4','C5'],'A minor pentatonic':['A3','C4','D4','E4','G4','A4'],'B minor':['B3','C#4','D4','E4','F#4','G4','A4','B4']};
+  var CHORDS={'C major':['C4','E4','G4'],'G major':['G3','B3','D4'],'F major':['F3','A3','C4'],'A minor':['A3','C4','E4'],'D minor':['D4','F4','A4'],'E minor':['E3','G3','B3'],'G minor':['G3','Bb3','D4'],'C major 7':['C4','E4','G4','B4'],'G7':['G3','B3','D4','F4'],'Am7':['A3','C4','E4','G4'],'Dm7':['D4','F4','A4','C5']};
+
+  function ny(note,clef){var p=clef==='bass'?BP:TP;var b=note.replace('#','').replace('b','');return p[b]!==undefined?p[b]:null;}
+  function ledgers(note,clef){var l=clef==='bass'?BL:TL;var b=note.replace('#','').replace('b','');return l[b]||[];}
+
+  // CORRECT stem direction:
+  // noteY < midY  = note is visually ABOVE middle line = stem DOWN (left side)
+  // noteY >= midY = note is ON or BELOW middle line    = stem UP   (right side)
+  function sdir(noteY,midY){return noteY>=midY;} // true=up
+
+  // Chord stem: determined by note FARTHEST from middle line
+  function cdir(ys,midY){
+    var best=ys[0],bestD=0;
+    ys.forEach(function(y){var d=Math.abs(y-midY);if(d>bestD){bestD=d;best=y;}});
+    return sdir(best,midY);
+  }
+
+  function staff(c){var s='';for(var i=1;i<=5;i++)s+='<line x1="'+SL+'" y1="'+ly(i)+'" x2="'+(SL+SW)+'" y2="'+ly(i)+'" stroke="'+c+'" stroke-width="1.5" stroke-linecap="round"/>';return s;}
+
+  // ── TREBLE CLEF — Unicode ──
+  // font-size=102, y=107 — LOCKED, bottom circle tangent to L1
+  // Staff lines must be drawn AFTER this element so they render on top
+  function tclef(ox,c){
+    var x=ox!==undefined?ox:SL;
+    var fs=Math.round(SLS*8.5);
+    var ay=ly(1)-1;
+    return '<text x="'+x+'" y="'+ay+'" font-family="serif" font-size="'+fs+'" fill="'+c+'" dominant-baseline="auto">𝄞</text>';
+  }
+
+  // ── BASS CLEF — Unicode ──
+  function bclef(ox,c){
+    var x=ox!==undefined?ox:SL;
+    var fs=Math.round(SLS*3.5);
+    var ay=sy(3)+2;
+    return '<text x="'+x+'" y="'+ay+'" font-family="serif" font-size="'+fs+'" fill="'+c+'" dominant-baseline="auto">𝄢</text>';
+  }
+
+  // ── ACCIDENTALS ──
+  // Sharp, flat, double sharp, double flat: Unicode text — renders as pure strokes, no background
+  // ── ACCIDENTAL FUNCTIONS — LOCKED ──
+  // Sizes and y offsets approved through iterative testing
+  // All placed to LEFT of note head, almost touching but not quite
+  // text-anchor="end" so right edge of symbol sits at x
+  // y offset centers symbol on note head midline
+  // For chords: top accidental closest (right col), lower ones step LEFT by 12px each
+  // Vertical y matches note head y proportionately
+  // Draw order: accidentals FIRST, then stems ON TOP (stems pass through accidental backgrounds)
+  // Staff lines also drawn on top of accidentals in final render
+
+  // Single note accidental x = note_cx - NRX - 2 (almost touching left edge of note)
+  // Chord accidental stagger: each lower accidental steps 12px further left
+  // Accidental y = note_y + 9 (centers on note midline for most symbols)
+
+  function sharp(x,y,c){
+    // y+9 centers on note midline
+    return '<text x="'+x+'" y="'+(y+9)+'" font-family="serif" font-size="28" fill="'+c+'" text-anchor="end">♯</text>';
+  }
+  function flat(x,y,c){
+    // y+4 centers flat glyph (descends below baseline)
+    return '<text x="'+x+'" y="'+(y+4)+'" font-family="serif" font-size="28" fill="'+c+'" text-anchor="end">♭</text>';
+  }
+  function dsharp(x,y,c){
+    // double sharp: font-size=42, y+24 to center on note midline
+    return '<text x="'+x+'" y="'+(y+24)+'" font-family="serif" font-size="42" fill="'+c+'" text-anchor="end">𝄪</text>';
+  }
+  function dflat(x,y,c){
+    // double flat: font-size=26, y+4
+    return '<text x="'+x+'" y="'+(y+4)+'" font-family="serif" font-size="26" fill="'+c+'" text-anchor="end">𝄫</text>';
+  }
+  function natural(x,y,c){
+    // natural: font-size=28, y+9
+    return '<text x="'+x+'" y="'+(y+9)+'" font-family="serif" font-size="28" fill="'+c+'" text-anchor="end">♮</text>';
+  }
+  function courtesy(x,y,c){
+    // courtesy accidental in parentheses: font-size=20, y+8
+    return '<text x="'+x+'" y="'+(y+8)+'" font-family="serif" font-size="20" fill="'+c+'" text-anchor="end">(♮)</text>';
+  }
+
+  // Accidental stagger for chords:
+  // topAcc = note_cx - NRX - 2  (right/closest column)
+  // each lower acc = topAcc - (step * 12) where step=1,2,3...
+  // but if two notes are far apart (>2 SLS) they can share the same column (step=0)
+  var ACC_STAGGER = 12; // px between stagger columns
+
+  // ── BARLINE FUNCTIONS — LOCKED ──
+  // All barlines span from treble L5 to bass L1 on grand staff, or L5 to L1 on single staff
+  // 1px gap between thick and thin lines
+  // Repeat dots: treble = y=78(L3-L4) and y=90(L2-L3), bass = y=188(L3-L4) and y=200(L2-L3)
+
+  function barlineSingle(x,y1,y2,c){
+    return '<line x1="'+x+'" y1="'+y1+'" x2="'+x+'" y2="'+y2+'" stroke="'+c+'" stroke-width="1.5"/>';
+  }
+  function barlineDouble(x,y1,y2,c){
+    return '<line x1="'+x+'" y1="'+y1+'" x2="'+x+'" y2="'+y2+'" stroke="'+c+'" stroke-width="1.5"/>'
+          +'<line x1="'+(x+4)+'" y1="'+y1+'" x2="'+(x+4)+'" y2="'+y2+'" stroke="'+c+'" stroke-width="1.5"/>';
+  }
+  function barlineFinal(x,y1,y2,c){
+    return '<line x1="'+x+'" y1="'+y1+'" x2="'+x+'" y2="'+y2+'" stroke="'+c+'" stroke-width="1.5"/>'
+          +'<line x1="'+(x+8)+'" y1="'+y1+'" x2="'+(x+8)+'" y2="'+y2+'" stroke="'+c+'" stroke-width="6"/>';
+  }
+  function barlineStartRepeat(x,y1,y2,td1,td2,bd1,bd2,c){
+    // td1,td2=treble dot y, bd1,bd2=bass dot y
+    var s='<line x1="'+x+'" y1="'+y1+'" x2="'+x+'" y2="'+y2+'" stroke="'+c+'" stroke-width="6"/>';
+    s+='<line x1="'+(x+8)+'" y1="'+y1+'" x2="'+(x+8)+'" y2="'+y2+'" stroke="'+c+'" stroke-width="1.5"/>';
+    s+='<circle cx="'+(x+15)+'" cy="'+td1+'" r="3" fill="'+c+'"/>';
+    s+='<circle cx="'+(x+15)+'" cy="'+td2+'" r="3" fill="'+c+'"/>';
+    if(bd1)s+='<circle cx="'+(x+15)+'" cy="'+bd1+'" r="3" fill="'+c+'"/>';
+    if(bd2)s+='<circle cx="'+(x+15)+'" cy="'+bd2+'" r="3" fill="'+c+'"/>';
+    return s;
+  }
+  function barlineEndRepeat(x,y1,y2,td1,td2,bd1,bd2,c){
+    var s='<circle cx="'+(x)+'" cy="'+td1+'" r="3" fill="'+c+'"/>';
+    s+='<circle cx="'+(x)+'" cy="'+td2+'" r="3" fill="'+c+'"/>';
+    if(bd1)s+='<circle cx="'+(x)+'" cy="'+bd1+'" r="3" fill="'+c+'"/>';
+    if(bd2)s+='<circle cx="'+(x)+'" cy="'+bd2+'" r="3" fill="'+c+'"/>';
+    s+='<line x1="'+(x+6)+'" y1="'+y1+'" x2="'+(x+6)+'" y2="'+y2+'" stroke="'+c+'" stroke-width="1.5"/>';
+    s+='<line x1="'+(x+14)+'" y1="'+y1+'" x2="'+(x+14)+'" y2="'+y2+'" stroke="'+c+'" stroke-width="6"/>';
+    return s;
+  }
+
+  // ── FERMATA — LOCKED ──
+  // Treated as an alteration — always above staff outside L5, same height as marcato
+  // Flips below only on collision with other markings above
+  // Unicode: 𝄐 (U+1D110)
+  function fermata(x,y,above,c){
+    // above=true → above staff; above=false → inverted below staff
+    if(above){
+      return '<text x="'+x+'" y="'+(y)+'" font-family="serif" font-size="26" fill="'+c+'" text-anchor="middle">𝄐</text>';
+    } else {
+      return '<text x="'+x+'" y="'+(y)+'" font-family="serif" font-size="26" fill="'+c+'" text-anchor="middle" transform="scale(1,-1) translate(0,'+(-(y*2))+')">𝄐</text>';
+    }
+  }
+
+  // Single note with correct stem direction and attachment
+  // LOCKED: Note head rotation -20, Whole cutout +78, flag always curves RIGHT
+  var NROT=-20;
+  var WROT=78;
+  var FGAP=9; // px between stacked flags
+  function flag(sx,ey,up,c){
+    var r=14,h=26,g=5;
+    if(up){
+      return '<path d="M'+sx+','+ey+' C'+(sx+r)+','+(ey-1)+' '+(sx+r+2)+','+(ey+h*0.54)+' '+(sx+r-5)+','+(ey+h)+' C'+(sx+r)+','+(ey+h*0.54)+' '+(sx+r-3)+','+(ey+g*1.2)+' '+sx+','+(ey+g)+' Z" fill="'+c+'" stroke="none"/>';
+    } else {
+      return '<path d="M'+sx+','+ey+' C'+(sx+r)+','+(ey+1)+' '+(sx+r+2)+','+(ey-h*0.54)+' '+(sx+r-5)+','+(ey-h)+' C'+(sx+r)+','+(ey-h*0.54)+' '+(sx+r-3)+','+(ey-g*1.2)+' '+sx+','+(ey-g)+' Z" fill="'+c+'" stroke="none"/>';
+    }
+  }
+
+  // ── BEAM FUNCTION — LOCKED ──
+  // Draws connected beams for grouped 8th/16th/32nd/64th notes
+  // notes: array of {noteStr, x} objects
+  // type: 'eighth'=1 beam, 'sixteenth'=2, 'thirty_second'=3, 'sixty_fourth'=4
+  // Rules:
+  //   1. Furthest note from midline sets stem direction for whole group
+  //   2. One outlier overrides majority
+  //   3. Tie goes to stem down
+  //   4. Constant melodic direction → diagonal beam connecting first/last stem tips
+  //   5. Mixed direction → flat horizontal beam at outermost stem tip
+  //   6. Middle stems stretch/shorten to meet beam line
+  //   7. 16th=2 beams, 32nd=3, 64th=4 — parallel bars spaced 6px apart below first
+  var BEAM_W=5;  // beam bar thickness px
+  var BEAM_GAP=6; // gap between parallel beams for 16th/32nd/64th
+
+  function beamGroup(notes,type,clef,c,bg){
+    var bgCol=bg||'#1a2a4a';
+    var numBeams=type==='eighth'?1:type==='sixteenth'?2:type==='thirty_second'?3:4;
+    var midY=TMID;
+    // Get y positions
+    var ys=notes.map(function(n){return ny(n.noteStr,clef);}).filter(function(y){return y!==null;});
+    if(!ys.length)return'';
+    // Rule 1-4: determine stem direction
+    var maxAbove=Math.min.apply(null,ys); // smallest y = highest note = furthest above mid if above
+    var maxBelow=Math.max.apply(null,ys); // largest y = lowest note = furthest below mid if below
+    var distAbove=midY-maxAbove; // how far above mid
+    var distBelow=maxBelow-midY; // how far below mid
+    var up;
+    if(distAbove===distBelow) up=false; // rule 4: tie → stems down
+    else up=distBelow>distAbove;        // rule 1-3: furthest from mid wins
+    // Stem x positions
+    var sxs=notes.map(function(n){
+      var x=n.x;
+      return up?x+NRX-1:x-NRX+1;
+    });
+    var noteYs=notes.map(function(n){return ny(n.noteStr,clef);});
+    // Determine beam y at first and last stem
+    var firstSx=sxs[0], lastSx=sxs[sxs.length-1];
+    var firstY=noteYs[0], lastY=noteYs[noteYs.length-1];
+    // Base stem length
+    var baseLen=SH;
+    var firstTip=up?firstY-baseLen:firstY+baseLen;
+    var lastTip=up?lastY-baseLen:lastY+baseLen;
+    // Rule: constant melodic direction → diagonal beam
+    var ascending=true,descending=true;
+    for(var i=1;i<noteYs.length;i++){
+      if(noteYs[i]>=noteYs[i-1])ascending=false;
+      if(noteYs[i]<=noteYs[i-1])descending=false;
+    }
+    var diagonal=ascending||descending;
+    // If not diagonal, use flat beam at the outermost tip
+    var beamY1,beamY2;
+    if(diagonal){
+      beamY1=firstTip;
+      beamY2=lastTip;
+    } else {
+      var flatY=up?Math.min(firstTip,lastTip):Math.max(firstTip,lastTip);
+      beamY1=flatY; beamY2=flatY;
+    }
+    // Interpolate beam y at each stem x
+    function beamAt(sx){
+      if(firstSx===lastSx)return beamY1;
+      return beamY1+(beamY2-beamY1)*(sx-firstSx)/(lastSx-firstSx);
+    }
+    var s='';
+    // Draw note heads and stems
+    notes.forEach(function(n,i){
+      var x=n.x; var y=noteYs[i]; if(y===null)return;
+      var acc=n.noteStr.match(/[#b]/)?n.noteStr.match(/[#b]/)[0]:'';
+      ledgers(n.noteStr,clef).forEach(function(ly2){s+='<line x1="'+(x-NRX-4)+'" y1="'+ly2+'" x2="'+(x+NRX+4)+'" y2="'+ly2+'" stroke="'+c+'" stroke-width="1.5"/>';});
+      if(acc==='#')s+=sharp(x-NRX-8,y,c);
+      if(acc==='b')s+=flat(x-NRX-7,y,c);
+      s+=drawHead(x,y,'quarter',c,bgCol); // filled head, no flags
+      var sx=sxs[i];
+      var tipY=beamAt(sx);
+      s+='<line x1="'+sx+'" y1="'+y+'" x2="'+sx+'" y2="'+tipY+'" stroke="'+c+'" stroke-width="1.5" stroke-linecap="round"/>';
+    });
+    // Draw beams (parallel bars)
+    for(var b=0;b<numBeams;b++){
+      var off=up?b*BEAM_GAP:-b*BEAM_GAP; // each additional beam goes away from note heads
+      var y1=beamY1+off, y2=beamY2+off;
+      // Beam as polygon with BEAM_W thickness
+      if(up){
+        s+='<polygon points="'+firstSx+','+(y1)+' '+lastSx+','+(y2)+' '+lastSx+','+(y2+BEAM_W)+' '+firstSx+','+(y1+BEAM_W)+'" fill="'+c+'"/>';
+      } else {
+        s+='<polygon points="'+firstSx+','+(y1-BEAM_W)+' '+lastSx+','+(y2-BEAM_W)+' '+lastSx+','+(y2)+' '+firstSx+','+(y1)+'" fill="'+c+'"/>';
+      }
+    }
+    return s;
+  }
+
+  // ── DOT FUNCTION — LOCKED ──
+  // Dot radius=1.5, placed NRX+5 right of note head
+  // If note is on a line (y divisible by SLS from ST): dot shifts up SLS/2 into space above
+  // If note is in a space: dot stays at note y
+  // Works on any note type including beamed and chords (each head gets its own dot)
+  function dot(x,y,c){
+    var onLine=(y-ST)%SLS===0;
+    var dotY=onLine?y-SLS/2:y;
+    return '<circle cx="'+(x+NRX+5)+'" cy="'+dotY+'" r="1.5" fill="'+c+'"/>';
+  }
+
+  // ── ARTICULATION FUNCTIONS — ALL LOCKED ──
+  // Placement rules:
+  // stem up   → articulation BELOW notehead
+  // stem down → articulation ABOVE notehead
+  // STACCATO: round dot r=1.5, outside staff, close to notehead
+  // STACCATISSIMO: teardrop wedge, INSIDE staff, directly against notehead
+  // TENUTO: short horizontal bar, INSIDE staff, slightly away from notehead
+  // ACCENT: small > shape opening LEFT, centered on note, OUTSIDE staff
+  // MARCATO: tight ^ triangle, ALWAYS above, OUTSIDE staff above L5
+  // Series rule: if many of same type in a row, all stay on side where series started
+  // Slurs/ties NEVER override stem direction — only beamed group rules can
+
+  function staccato(x,y,up,c){
+    var dy=up?y+SLS*0.93:y-SLS*0.93;
+    return '<circle cx="'+x+'" cy="'+dy+'" r="1.5" fill="'+c+'"/>';
+  }
+
+  function staccatissimo(x,y,up,c){
+    // Teardrop: point toward notehead, inside staff
+    var py=up?y+SLS*0.5:y-SLS*0.5;
+    var ey=up?py+SLS*0.75:py-SLS*0.75;
+    if(up){
+      return '<path d="M'+x+','+py+' C'+(x-3)+','+(py+4)+' '+(x-3)+','+(py+8)+' '+x+','+(py+9)+' C'+(x+3)+','+(py+8)+' '+(x+3)+','+(py+4)+' '+x+','+py+' Z" fill="'+c+'"/>';
+    } else {
+      return '<path d="M'+x+','+py+' C'+(x-3)+','+(py-4)+' '+(x-3)+','+(py-8)+' '+x+','+(py-9)+' C'+(x+3)+','+(py-8)+' '+(x+3)+','+(py-4)+' '+x+','+py+' Z" fill="'+c+'"/>';
+    }
+  }
+
+  function tenuto(x,y,up,c){
+    // Short horizontal bar, inside staff, slightly away from notehead
+    var ty=up?y+SLS*0.83:y-SLS*0.83;
+    return '<line x1="'+(x-NRX)+'" y1="'+ty+'" x2="'+(x+NRX)+'" y2="'+ty+'" stroke="'+c+'" stroke-width="2.2" stroke-linecap="round"/>';
+  }
+
+  function accent(x,y,up,c){
+    // Small > opening left, centered on note, outside staff
+    var ay=up?y+SLS*1.08:y-SLS*1.08;
+    var h=SLS*0.25;
+    var w=SLS*1.08;
+    return '<path d="M'+(x-w*0.5)+','+(ay-h)+' L'+(x+w*0.5)+','+ay+' L'+(x-w*0.5)+','+(ay+h)+'" fill="none" stroke="'+c+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>';
+  }
+
+  function marcato(x,y,c){
+    // Tight ^ always above, outside staff above L5
+    // Place above stem tip or above L5, whichever is higher
+    var my=ST-SLS*1.5; // above L5
+    var h=SLS*0.67;
+    var w=SLS*0.42;
+    return '<path d="M'+(x-w)+','+(my)+' L'+x+','+(my-h)+' L'+(x+w)+','+my+'" fill="none" stroke="'+c+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>';
+  }
+
+  // Slur: curved arc, placement by stem direction majority
+  // up=true → slur below noteheads; up=false → slur above
+  // x1,y1 = first note position; x2,y2 = last note position
+  function slur(x1,y1,x2,y2,up,c){
+    var off=SLS*0.67;
+    var cy1=up?y1+off:y1-off;
+    var cy2=up?y2+off:y2-off;
+    var mx=(x1+x2)/2;
+    var mcy=up?Math.max(cy1,cy2)+SLS*0.5:Math.min(cy1,cy2)-SLS*0.5;
+    return '<path d="M'+x1+','+cy1+' Q'+mx+','+mcy+' '+x2+','+cy2+'" fill="none" stroke="'+c+'" stroke-width="1.5" stroke-linecap="round"/>';
+  }
+
+  function drawHead(x,y,type,c,bg){
+    var s='';
+    if(type==='whole'){
+      // Whole: plain outer ellipse, inner cutout rotated +78
+      s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+NRX+'" ry="'+NRY+'" fill="'+c+'"/>';
+      s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+(NRX*0.67)+'" ry="'+(NRY*0.42)+'" fill="'+bg+'" transform="rotate('+WROT+','+x+','+y+')"/>';
+    } else if(type==='half'){
+      // Half: outer ellipse at NROT, inner cutout at NROT (stretched long)
+      s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+NRX+'" ry="'+NRY+'" fill="'+c+'" transform="rotate('+NROT+','+x+','+y+')"/>';
+      s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+(NRX*0.67)+'" ry="'+(NRY*0.42)+'" fill="'+bg+'" transform="rotate('+NROT+','+x+','+y+')"/>';
+    } else {
+      // Quarter and all flagged: filled, rotated NROT
+      s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+NRX+'" ry="'+NRY+'" fill="'+c+'" transform="rotate('+NROT+','+x+','+y+')"/>';
+    }
+    return s;
+  }
+
+  function note(noteStr,x,type,clef,c,bg){
+    var bgCol=bg||'#1a2a4a';
+    var midY=TMID;
+    var y=ny(noteStr,clef);if(y===null)return'';
+    var acc=noteStr.match(/[#b]/)?noteStr.match(/[#b]/)[0]:'';
+    var up=sdir(y,midY);
+    var s='';
+    ledgers(noteStr,clef).forEach(function(ly2){s+='<line x1="'+(x-NRX-4)+'" y1="'+ly2+'" x2="'+(x+NRX+4)+'" y2="'+ly2+'" stroke="'+c+'" stroke-width="1.5"/>';});
+    if(acc==='#') s+=sharp(x-NRX-8, y, c);
+    if(acc==='b') s+=flat(x-NRX-7, y, c);
+    if(acc==='n') s+=natural(x-NRX-8, y, c);
+    s+=drawHead(x,y,type,c,bgCol);
+    if(type!=='whole'){
+      var sx=up?x+NRX-1:x-NRX+1;
+      var numFlags=type==='eighth'?1:type==='sixteenth'?2:type==='thirty_second'?3:type==='sixty_fourth'?4:0;
+      // Stem length: base SH + extra room for flags (each flag needs ~9px + 8px gap above note)
+      var extraStem=numFlags>1?(numFlags-1)*FGAP+8:0;
+      var stemLen=SH+extraStem;
+      var ey=up?y-stemLen:y+stemLen;
+      s+='<line x1="'+sx+'" y1="'+y+'" x2="'+sx+'" y2="'+ey+'" stroke="'+c+'" stroke-width="1.5" stroke-linecap="round"/>';
+      if(numFlags>0){
+        // Stem up: flags stack downward from tip; stem down: flags stack upward from tip
+        for(var f=0;f<numFlags;f++){
+          var fey=up?ey+(f*FGAP):ey-(f*FGAP);
+          s+=flag(sx,fey,up,c);
+        }
+      }
+    }
+    return s;
+  }
+
+  // ── CHORD FUNCTION — LOCKED ──
+  // Rules:
+  // - One stem for all notes, direction by furthest from midline
+  // - 2nd intervals: one note flips to opposite side of stem, both edges touch stem at same x
+  // - Stem up: root right (cx=sx-NRX), 2nd left (cx=sx+NRX)
+  // - Stem down: root left (cx=sx+NRX), 2nd right (cx=sx-NRX)
+  // - Stem runs from outermost note through all notes
+  // - Each note head gets its own dot if dotted
+  // - Ledger lines are short, only around the note head
+  function chord(notes,x,type,clef,c,bg,dotted){
+    var bgCol=bg||'#1a2a4a';
+    var midY=TMID;
+    var ys=notes.map(function(n){return ny(n,clef);}).filter(function(y){return y!==null;});
+    if(!ys.length)return'';
+    var up=cdir(ys,midY);
+    var minY=Math.min.apply(null,ys),maxY=Math.max.apply(null,ys);
+    // Stem x: right side if up, left side if down
+    var sx=up?x+NRX-1:x-NRX+1;
+    // Stem runs from outermost note (including flipped notes at top)
+    var fromY=up?maxY:minY;
+    var toY=up?minY-SH:maxY+SH;
+    var s='';
+    // Sort notes by y position (low to high pitch = high to low y)
+    var sortedYs=ys.slice().sort(function(a,b){return b-a;}); // ascending pitch
+    notes.forEach(function(noteStr,i){
+      var y=ny(noteStr,clef);if(y===null)return;
+      var acc=noteStr.match(/[#b]/)?noteStr.match(/[#b]/)[0]:'';
+      // Check if this note is a 2nd away from adjacent note
+      var prevY=i>0?ny(notes[i-1],clef):null;
+      var nextY=i<notes.length-1?ny(notes[i+1],clef):null;
+      var isSecond=(prevY!==null&&Math.abs(y-prevY)===SLS/2)||(nextY!==null&&Math.abs(y-nextY)===SLS/2);
+      // Determine which note of the 2nd pair flips
+      // The note that is NOT the root (not lowest if up, not highest if down) flips
+      var flip=false;
+      if(isSecond){
+        if(up && prevY!==null && Math.abs(y-prevY)===SLS/2 && y<prevY) flip=true;
+        if(!up && prevY!==null && Math.abs(y-prevY)===SLS/2 && y>prevY) flip=true;
+      }
+      // cx: normal = sx-NRX (up) or sx+NRX (down). Flipped = opposite side touching stem
+      var cx;
+      if(!flip){
+        cx=up?sx-NRX:sx+NRX;
+      } else {
+        cx=up?sx+NRX:sx-NRX;
+      }
+      // Ledger lines — short, only around note
+      ledgers(noteStr,clef).forEach(function(ly2){
+        s+='<line x1="'+(cx-NRX-4)+'" y1="'+ly2+'" x2="'+(cx+NRX+4)+'" y2="'+ly2+'" stroke="'+c+'" stroke-width="1.5"/>';
+      });
+      if(acc==='#') s+=sharp(cx-NRX-8, y, c);
+      if(acc==='b') s+=flat(cx-NRX-7, y, c);
+      if(acc==='n') s+=natural(cx-NRX-8, y, c);
+      s+=drawHead(cx,y,type,c,bgCol);
+      // Dot per note head if dotted
+      if(dotted){
+        var onLine=sortedYs.indexOf(y)>=0&&(y-60)%12===0; // rough line check
+        var dotY=(y%SLS===0)?y-SLS/2:y; // shift up if on line
+        s+='<circle cx="'+(cx+NRX+5)+'" cy="'+dotY+'" r="1.5" fill="'+c+'"/>';
+      }
+    });
+    // Draw stem on top of note heads
+    if(type!=='whole'){
+      s+='<line x1="'+sx+'" y1="'+fromY+'" x2="'+sx+'" y2="'+toY+'" stroke="'+c+'" stroke-width="1.5" stroke-linecap="round"/>';
+    }
+    return s;
+  }
+
+  function classify(text){
+    var t=text.toLowerCase();
+    var isBass=t.indexOf('bass')>-1;
+    for(var sn in SCALES){if(t.indexOf(sn.toLowerCase())>-1)return{type:'scale',name:sn,clef:isBass?'bass':'treble'};}
+    if(t.match(/\b(major|minor|pentatonic)\s+scale\b|\bscale\b/)){
+      var keys=['C','G','D','A','E','B','F'];
+      for(var i=0;i<keys.length;i++){var re=new RegExp('\\b'+keys[i]+'\\s+(major|minor)','i');var m=t.match(re);if(m){var sn2=keys[i]+' '+m[1].toLowerCase();if(SCALES[sn2])return{type:'scale',name:sn2,clef:isBass?'bass':'treble'};}}
+      return{type:'scale',name:'C major',clef:isBass?'bass':'treble'};
+    }
+    for(var cn in CHORDS){if(t.indexOf(cn.toLowerCase())>-1)return{type:'chord',name:cn,clef:isBass?'bass':'treble'};}
+    if(t.match(/\b(chord|triad|arpeggio)\b/))return{type:'chord',name:'C major',clef:isBass?'bass':'treble'};
+    if(t.match(/\b(whole note|half note|quarter note|eighth note|note value|note duration|dotted)\b/))return{type:'note_values'};
+    if(t.match(/\b(treble clef|bass clef|staff|stave|clef)\b/))return{type:'staff_clef',clef:isBass?'bass':'treble'};
+    if(t.match(/\b(interval|half step|whole step|semitone|tone|third|fifth|octave|fourth|sixth|seventh)\b/))return{type:'interval'};
+    return null;
+  }
+
+  function generate(sceneText,style){
+    var c=style&&style.color?style.color:'#e8c96a';
+    var bg=style&&style.bg?style.bg:'#1a2a4a';
+    var cls=classify(sceneText);if(!cls)return null;
+    var W=1280,H=720;
+    var hdr='<svg width="100%" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" role="img"><title>'+cls.type+'</title><desc>Music theory notation</desc><rect width="'+W+'" height="'+H+'" fill="'+bg+'" rx="8"/>';
+    var ftr='</svg>';
+    var clefLayer='',noteLayer='',title='';
+
+    if(cls.type==='scale'){
+      var ns=SCALES[cls.name]||SCALES['C major'];
+      var clefW=58,sp=Math.floor((SW-clefW)/ns.length),sx=SL+clefW;
+      title=cls.name+' scale';
+      clefLayer+=cls.clef==='bass'?bclef(0,c):tclef(0,c);
+      for(var i=0;i<ns.length;i++)noteLayer+=note(ns[i],sx+i*sp,'quarter',cls.clef,c);
+      for(var i=0;i<ns.length;i++){var lbl=ns[i].replace(/[0-9]/g,'').replace('#','♯').replace('b','♭');noteLayer+='<text x="'+(sx+i*sp)+'" y="195" text-anchor="middle" font-family="sans-serif" font-size="10" fill="'+c+'" opacity="0.6">'+lbl+'</text>';}
+    }
+    else if(cls.type==='chord'){
+      var ns=CHORDS[cls.name]||CHORDS['C major'];
+      var cx=W*0.48;
+      title=cls.name+' chord';
+      clefLayer+=cls.clef==='bass'?bclef(0,c):tclef(0,c);
+      noteLayer+=chord(ns,cx,'half',cls.clef,c);
+      var lbls=ns.map(function(n){return n.replace(/[0-9]/g,'').replace('#','♯').replace('b','♭');}).join(' – ');
+      noteLayer+='<text x="'+cx+'" y="195" text-anchor="middle" font-family="sans-serif" font-size="11" fill="'+c+'" opacity="0.6">'+lbls+'</text>';
+    }
+    else if(cls.type==='note_values'){
+      var types=['whole','half','quarter','eighth'],lbls2=['Whole','Half','Quarter','Eighth'],beats=['4 beats','2 beats','1 beat','½ beat'];
+      title='Note values';
+      clefLayer+=tclef(0,c);
+      for(var i=0;i<types.length;i++){
+        var x2=SL+60+i*(SW/5);
+        noteLayer+=note('B4',x2,types[i],'treble',c);
+        noteLayer+='<text x="'+x2+'" y="185" text-anchor="middle" font-family="sans-serif" font-size="11" fill="'+c+'" opacity="0.8">'+lbls2[i]+'</text>';
+        noteLayer+='<text x="'+x2+'" y="197" text-anchor="middle" font-family="sans-serif" font-size="10" fill="'+c+'" opacity="0.55">'+beats[i]+'</text>';
+      }
+    }
+    else if(cls.type==='staff_clef'){
+      var cn=cls.clef==='bass'?'Bass clef':'Treble clef';
+      title=cn;
+      if(cls.clef==='bass'){
+        clefLayer+=bclef(0,c);
+        noteLayer+='<line x1="'+(SL+SW-30)+'" y1="'+ly(4)+'" x2="'+(SL+SW+5)+'" y2="'+ly(4)+'" stroke="'+c+'" stroke-dasharray="3,2" stroke-width="1" opacity="0.5"/>';
+        noteLayer+='<text x="'+(SL+SW+10)+'" y="'+(ly(4)+4)+'" font-family="sans-serif" font-size="10" fill="'+c+'" opacity="0.7">F line</text>';
+      } else {
+        clefLayer+=tclef(0,c);
+        noteLayer+='<line x1="'+(SL+SW-30)+'" y1="'+ly(2)+'" x2="'+(SL+SW+5)+'" y2="'+ly(2)+'" stroke="'+c+'" stroke-dasharray="3,2" stroke-width="1" opacity="0.5"/>';
+        noteLayer+='<text x="'+(SL+SW+10)+'" y="'+(ly(2)+4)+'" font-family="sans-serif" font-size="10" fill="'+c+'" opacity="0.7">G line</text>';
+      }
+    }
+    else if(cls.type==='interval'){
+      title='Perfect fifth interval (C – G)';
+      clefLayer+=tclef(0,c);
+      noteLayer+=note('C4',W*0.4,'half','treble',c);
+      noteLayer+=note('G4',W*0.55,'half','treble',c);
+      noteLayer+='<text x="'+(W*0.475)+'" y="195" text-anchor="middle" font-family="sans-serif" font-size="11" fill="'+c+'" opacity="0.6">7 half steps</text>';
+    }
+
+    // RENDER ORDER: clef first, then notes, then staff lines ON TOP so they cross the clef cleanly
+    var titleSvg='<text x="'+W/2+'" y="22" text-anchor="middle" font-family="sans-serif" font-size="14" fill="'+c+'" font-weight="500">'+title+'</text>';
+    return hdr+titleSvg+clefLayer+noteLayer+staff(c)+ftr;
+  }
+
+  function toBlob(s){return new Blob([s],{type:'image/svg+xml'});}
+  async function toPNGBlob(svgStr){
+    return new Promise(function(resolve,reject){
+      var img=new Image();
+      img.onload=function(){
+        var canvas=document.createElement('canvas');
+        canvas.width=1280;canvas.height=Math.round(230*1280/720);
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        canvas.toBlob(function(blob){resolve(blob);},'image/png');
+      };
+      img.onerror=function(){reject(new Error('SVG→PNG failed'));};
+      img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgStr);
+    });
+  }
+  return{classify:classify,generate:generate,toPNGBlob:toPNGBlob,toBlob:toBlob};
+})();
+
+
+// ============================================================
+// SMART IMAGE ROUTER — notation engine or FLUX
+// ============================================================
+async function generateImageForScene(sceneText, prompt, seed) {
+  // Check if this scene needs precise notation
+  var artKey = document.getElementById('artStyle') ? document.getElementById('artStyle').value : 'navy';
+  var colorMap = { navy:'#e8c96a', chalkboard:'#e8c96a', white:'#e8644a', flat:'#e8c96a', notebook:'#f5c842' };
+  var bgMap   = { navy:'#1a2a4a', chalkboard:'#0d1826', white:'#ffffff', flat:'#1a2a4a', notebook:'#fdf6e3' };
+
+  var style = { color: colorMap[artKey]||'#e8c96a', bg: bgMap[artKey]||'#1a2a4a' };
+  var svgStr = NE.generate(sceneText, style);
+
+  if (svgStr) {
+    // Use notation engine — convert to PNG blob for consistent handling
+    try {
+      var pngBlob = await NE.toPNGBlob(svgStr);
+      return { blob: pngBlob, source: 'notation' };
+    } catch(e) {
+      // PNG conversion failed — fall back to SVG blob
+      return { blob: NE.toBlob(svgStr), source: 'notation' };
+    }
+  }
+
+  // Not a notation scene — use FLUX
+  var fluxBlob = await generateImage(prompt, seed);
+  return { blob: fluxBlob, source: 'flux' };
+}
+
 // ============================================================
 // HUGGING FACE — FLUX (IMAGE GENERATION)
 // ============================================================
@@ -712,32 +1464,7 @@ async function produceVideo(){
     setProgress(50,'Step 2b — Generating image prompts for '+currentScenes.length+' scenes...');
 
     var promptsText=currentScenes.map(function(s,i){return'Scene '+(i+1)+': '+s.text;}).join('\n');
-
-    var MUSIC_VISUAL_RULES='MUSIC THEORY VISUAL ACCURACY RULES — follow these exactly:\n'
-      +'STAFF: Always draw exactly 5 horizontal parallel lines, equal spacing. Never more, never less.\n'
-      +'TREBLE CLEF: The clef symbol curls around the second line from the bottom (the G line). Do not add other clef symbols unless specifically requested.\n'
-      +'NOTES ON STAFF: Each note name has a fixed position — C4 sits on a ledger line below the staff, D4 in the space below line 1, E4 on line 1, F4 in space 1, G4 on line 2, A4 in space 2, B4 on line 3, C5 in space 3.\n'
-      +'NOTE SHAPES: Whole note = hollow oval, no stem. Half note = hollow oval with a stem. Quarter note = filled black oval with a stem. Eighth note = filled oval with stem and one flag.\n'
-      +'SCALES: A scale is a sequence of single notes ascending or descending on a staff, one note at a time, no chords, no double notes, no accidentals unless specified. Show notes in a clear left-to-right progression.\n'
-      +'CHORDS: Only show chords (multiple notes stacked vertically) when the scene specifically talks about chords. Never add chord shapes to scale or melody scenes.\n'
-      +'INTERVALS: Show two notes only — one on the bottom position, one on the top position at the correct distance apart on the staff.\n'
-      +'KEY SIGNATURES: Show sharps or flats only at the very beginning of the staff, before the time signature. Never scatter accidentals randomly.\n'
-      +'RHYTHM: Show note values clearly — if explaining rhythm, use a mix of note shapes that matches what is described. Do not mix note types randomly.\n'
-      +'ONE CONCEPT ONLY: Each image shows exactly one concept. Never combine a scale AND a chord. Never show a full song. Keep it simple and educational.\n'
-      +'NO DECORATIONS: No extra notes, no random accidentals, no piano keys unless specifically mentioned, no guitar shapes unless specifically mentioned.\n';
-
-    var promptInstr='You are writing precise image generation prompts for an educational music theory YouTube channel called "'+channelName+'". These prompts go directly to an AI image generator and must produce accurate music theory visuals.\n\n'
-      +MUSIC_VISUAL_RULES
-      +'\nArt style for ALL images: '+styleStr+'\n\n'
-      +'For each scene below, write ONE image generation prompt. Requirements:\n'
-      +'1. Identify the SINGLE most important music theory concept in the scene\n'
-      +'2. Describe it with complete visual accuracy using the rules above\n'
-      +'3. Be very specific — name exact notes, exact positions, exact note types if relevant\n'
-      +'4. Keep the prompt under 40 words\n'
-      +'5. End with the style: "'+styleStr+'"\n'
-      +'6. NO text or labels in the image\n'
-      +'7. If the scene is an intro or outro with no specific music theory concept, show the MusicIsEasy channel logo concept: a simple treble clef made of musical notes, '+styleStr+'\n\n'
-      +'Output ONLY numbered prompts:\n1. [prompt]\n2. [prompt]\n\nScenes:\n'+promptsText;
+    var promptInstr='You are writing image generation prompts for a music theory YouTube video called "'+channelName+'". Each prompt goes directly to an AI image generator.\n\nStyle for ALL images: '+styleStr+'\n\nFor each scene write ONE image prompt (max 35 words) that:\n1. Directly and specifically illustrates what is being spoken about in that scene\n2. Is concrete and visual — describe exactly what should be drawn\n3. Avoids generic music imagery — no random floating notes, no abstract music swirls\n4. Ends with the art style: "'+styleStr+'"\n5. No text or labels in the image\n\nOutput ONLY numbered prompts, nothing else:\n1. [prompt]\n2. [prompt]\n\nScenes:\n'+promptsText;
 
     var promptsRaw=await callGemini(promptInstr,5000);
     var promptLines=promptsRaw.split('\n').filter(function(l){return /^\d+\./.test(l.trim());});
@@ -761,11 +1488,12 @@ async function produceVideo(){
       try{
         if(i>0)await sleep(1500);
         var seed=Math.floor(Math.random()*2147483647);
-        var blob=await generateImage(currentScenes[i].prompt, seed);
+        var result=await generateImageForScene(currentScenes[i].text, currentScenes[i].prompt, seed);
+        var blob=result.blob;
         currentScenes[i].imgBlob=blob;
         imageBlobs[i]=blob;
         var url=URL.createObjectURL(blob);
-        updateCardImage(i,url);
+        updateCardImage(i,url,result.source);
         successCount++;
       }catch(err){
         if(err.message==='model_loading'){
@@ -773,10 +1501,10 @@ async function produceVideo(){
           await sleep(30000);
           try{
             var seed2=Math.floor(Math.random()*2147483647);
-            var blob2=await generateImage(currentScenes[i].prompt, seed2);
-            currentScenes[i].imgBlob=blob2;
-            imageBlobs[i]=blob2;
-            updateCardImage(i,URL.createObjectURL(blob2));
+            var result2=await generateImageForScene(currentScenes[i].text, currentScenes[i].prompt, seed2);
+            currentScenes[i].imgBlob=result2.blob;
+            imageBlobs[i]=result2.blob;
+            updateCardImage(i,URL.createObjectURL(result2.blob),result2.source);
             successCount++;
           }catch(e2){
             updateCardStatus(i,'failed');
@@ -851,7 +1579,7 @@ function updateCardStatus(i,status){
   }
 }
 
-function updateCardImage(i,url){
+function updateCardImage(i,url,source){
   var ph=document.getElementById('ph_'+i);
   var img=document.getElementById('img_'+i);
   var card=document.getElementById('card_'+i);
@@ -860,6 +1588,14 @@ function updateCardImage(i,url){
   if(card)card.classList.add('approved');
   var rb=document.getElementById('regenBtn_'+i);if(rb)rb.disabled=false;
   var db=document.getElementById('dlBtn_'+i);if(db)db.disabled=false;
+  // Show notation badge if generated by engine
+  if(source==='notation'){
+    var badge=document.createElement('div');
+    badge.style.cssText='position:absolute;top:4px;right:4px;background:rgba(201,168,76,0.9);color:#1a1408;font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;letter-spacing:0.04em;';
+    badge.textContent='NOTATION';
+    var card2=document.getElementById('card_'+i);
+    if(card2)card2.appendChild(badge);
+  }
 }
 
 async function regenImage(i){
@@ -872,10 +1608,10 @@ async function regenImage(i){
   if(ph){ph.style.display='flex';ph.innerHTML='<svg class="pulsing spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span style="font-size:10px;color:var(--text3);">Regenerating...</span>';}
   if(img)img.style.display='none';
   try{
-    var blob=await generateImage(currentScenes[i].prompt, Math.floor(Math.random()*2147483647));
-    currentScenes[i].imgBlob=blob;
-    imageBlobs[i]=blob;
-    updateCardImage(i,URL.createObjectURL(blob));
+    var result=await generateImageForScene(currentScenes[i].text, currentScenes[i].prompt, Math.floor(Math.random()*2147483647));
+    currentScenes[i].imgBlob=result.blob;
+    imageBlobs[i]=result.blob;
+    updateCardImage(i,URL.createObjectURL(result.blob),result.source);
   }catch(err){
     updateCardStatus(i,'failed');
   }
