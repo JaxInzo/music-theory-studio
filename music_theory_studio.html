@@ -1282,63 +1282,55 @@ var NE=(function(){
 // SMART IMAGE ROUTER — notation engine or FLUX
 // ============================================================
 // ============================================================
-// SMART IMAGE ROUTER — Claude decides notation vs Hugging Face
+// SMART IMAGE ROUTER — Groq decides notation vs Hugging Face
 // ============================================================
-async function routeScene(sceneText, styleStr) {
-  // Ask Groq/Llama to decide: notation engine or Hugging Face?
-  // Returns JSON: { type: 'notation', instruction: {...} }
-  //           or: { type: 'flux', prompt: '...' }
+async function routeScene(sceneText, videoTopic, priorContext, styleStr) {
   var routePrompt =
     'You are the image router for a music theory YouTube channel called MusicIsEasy.\n' +
-    'Given a scene of spoken text, decide whether to render it with a NOTATION ENGINE or an AI IMAGE GENERATOR.\n\n' +
-    'NOTATION ENGINE can render:\n' +
-    '- Named scales (e.g. C major scale, A minor scale, pentatonic scale)\n' +
-    '- Named chords (e.g. C major chord, G7, Am, diminished chord)\n' +
-    '- Note values (whole, half, quarter, eighth notes, rests, dotted notes)\n' +
-    '- Staff and clef diagrams (treble clef, bass clef, grand staff)\n' +
-    '- Intervals (half step, whole step, third, fifth, octave etc)\n' +
-    '- Key signatures (C major, G major, F minor etc)\n' +
-    '- Time signatures (4/4, 3/4, 6/8 etc)\n' +
-    '- Note names on staff (A B C D E F G, labelled notes)\n' +
-    '- Rhythm patterns (beamed notes, rests in a bar)\n\n' +
-    'AI IMAGE GENERATOR should be used for:\n' +
-    '- Historical or cultural context (ancient music, orchestras, famous composers)\n' +
-    '- Physical instruments (piano keyboard, guitar, violin)\n' +
-    '- Abstract concepts (emotion, feeling, mood in music)\n' +
-    '- Anything visual/narrative that is NOT a music theory diagram\n\n' +
-    'SCENE TEXT: "' + sceneText + '"\n\n' +
-    'Respond with ONLY valid JSON, no explanation:\n' +
-    'If notation: {"type":"notation","subtype":"scale|chord|note_values|staff_clef|interval|key_signature|time_signature|note_names|rhythm","key":"C major","label":"C Major Scale","clef":"treble","notes":["C4","D4","E4","F4","G4","A4","B4","C5"]}\n' +
-    'If flux: {"type":"flux","prompt":"[specific visual description, max 40 words, directly illustrating the scene, music theory educational style, clean minimal illustration, dark navy background with gold accents]"}\n' +
-    'For notation, include only relevant fields. For flux, make the prompt highly specific to what is being said, not generic.\n' +
-    'Only output the JSON object, nothing else.';
+    'VIDEO TOPIC: "' + videoTopic + '"\n' +
+    'PRIOR CONTEXT (what has already been shown): ' + (priorContext||'none') + '\n' +
+    'CURRENT SCENE: "' + sceneText + '"\n\n' +
+    'Decide whether to render with NOTATION ENGINE or AI IMAGE GENERATOR.\n\n' +
+    'NOTATION ENGINE handles: scales, chords, note values, staff/clef diagrams, intervals, key signatures, time signatures, note names on staff, rhythm patterns.\n' +
+    'AI IMAGE GENERATOR handles: instruments, historical context, abstract concepts, anything visual/narrative not a music theory diagram.\n\n' +
+    'STYLE RULES for AI images (STRICT — always follow these):\n' +
+    '- Clean minimal flat illustration style, NO photorealism, NO real humans or faces\n' +
+    '- Dark navy blue background (#1a2a4a), gold/amber accents\n' +
+    '- Simple geometric shapes, icons, or stylized objects only\n' +
+    '- If an instrument is needed: show a simple stylized icon/illustration of it, not a photo\n' +
+    '- Must feel consistent with other frames in this video\n' +
+    '- Max 40 words in prompt\n\n' +
+    'Respond ONLY with valid JSON:\n' +
+    'Notation: {"type":"notation","subtype":"scale|chord|note_values|staff_clef|interval|key_signature|time_signature|note_names|rhythm","key":"e.g. C major","label":"display title","clef":"treble|bass","notes":["C4","D4",...]}\n' +
+    'Image: {"type":"flux","prompt":"specific description. Clean minimal flat icon illustration, NO humans NO faces, dark navy background, gold accents, music theory educational style."}\n' +
+    'Only the JSON object, nothing else.';
 
   try {
     var raw = await callGemini(routePrompt, 500);
     raw = raw.replace(/```json|```/g, '').trim();
-    // Extract JSON object if wrapped in extra text
     var match = raw.match(/\{[\s\S]*\}/);
     if (match) raw = match[0];
     return JSON.parse(raw);
   } catch(e) {
-    // Fallback: use flux with a specific prompt
-    return { type: 'flux', prompt: 'Music theory educational illustration: ' + sceneText.slice(0,60) + '. Clean minimal diagram, dark navy background, gold accents.' };
+    return { type: 'flux', prompt: 'Simple flat icon illustration of music theory concept: ' + sceneText.slice(0,50) + '. NO humans, dark navy background, gold accents, minimal educational style.' };
   }
 }
 
-async function generateImageForScene(sceneText, prompt, seed) {
+async function generateImageForScene(sceneText, prompt, seed, videoTopic, priorScenes) {
   var artKey = document.getElementById('artStyle') ? document.getElementById('artStyle').value : 'navy';
   var colorMap = { navy:'#e8c96a', chalkboard:'#e8c96a', white:'#e8644a', flat:'#e8c96a', notebook:'#f5c842' };
   var bgMap   = { navy:'#1a2a4a', chalkboard:'#0d1826', white:'#ffffff', flat:'#1a2a4a', notebook:'#fdf6e3' };
   var style = { color: colorMap[artKey]||'#e8c96a', bg: bgMap[artKey]||'#1a2a4a' };
   var styleStr = artKey + ' music theory educational';
 
-  // Ask Claude to route this scene
-  var route = await routeScene(sceneText, styleStr);
+  // Build prior context summary (last 3 scenes)
+  var priorContext = priorScenes && priorScenes.length > 0
+    ? priorScenes.slice(-3).map(function(s){ return s.text; }).join(' | ')
+    : 'none';
+
+  var route = await routeScene(sceneText, videoTopic||'music theory', priorContext, styleStr);
 
   if (route.type === 'notation') {
-    // Build a scene description string the notation engine can use
-    // Pass routing info directly to enhanced generate function
     var svgStr = NE.generateFromRoute(route, style);
     if (svgStr) {
       try {
@@ -1350,7 +1342,7 @@ async function generateImageForScene(sceneText, prompt, seed) {
     }
   }
 
-  // Use Hugging Face with the routed prompt (much more specific than before)
+  // Use Hugging Face with routed prompt
   var fluxPrompt = route.prompt || prompt;
   var fluxBlob = await generateImage(fluxPrompt, seed);
   return { blob: fluxBlob, source: 'flux' };
@@ -1575,40 +1567,70 @@ async function produceVideo(){
     // ---- STEP 4: GENERATE IMAGES ONE BY ONE ----
     var successCount=0;
     var failCount=0;
+    var videoTopic=currentScript&&currentScript.topic?currentScript.topic:(document.getElementById('topic').value.trim()||'music theory');
 
     for(var i=0;i<currentScenes.length;i++){
       var pct=60+Math.floor((i/currentScenes.length)*35);
       setProgress(pct,'Generating image '+(i+1)+' of '+currentScenes.length+'...');
       updateCardStatus(i,'generating');
 
-      try{
-        if(i>0)await sleep(1500);
+      // Build prior scenes context for continuity
+      var priorScenes=currentScenes.slice(0,i);
+
+      var attemptImage=async function(sceneIdx){
         var seed=Math.floor(Math.random()*2147483647);
-        var result=await generateImageForScene(currentScenes[i].text, currentScenes[i].prompt, seed);
-        var blob=result.blob;
-        currentScenes[i].imgBlob=blob;
-        imageBlobs[i]=blob;
-        var url=URL.createObjectURL(blob);
-        updateCardImage(i,url,result.source);
+        return await generateImageForScene(
+          currentScenes[sceneIdx].text,
+          currentScenes[sceneIdx].prompt,
+          seed,
+          videoTopic,
+          currentScenes.slice(0,sceneIdx)
+        );
+      };
+
+      try{
+        if(i>0)await sleep(1200);
+        var result=await attemptImage(i);
+        currentScenes[i].imgBlob=result.blob;
+        imageBlobs[i]=result.blob;
+        updateCardImage(i,URL.createObjectURL(result.blob),result.source);
         successCount++;
       }catch(err){
+        var retried=false;
+
+        // Model loading — wait and retry
         if(err.message==='model_loading'){
           updateCardStatus(i,'waiting');
-          await sleep(30000);
+          await sleep(25000);
           try{
-            var seed2=Math.floor(Math.random()*2147483647);
-            var result2=await generateImageForScene(currentScenes[i].text, currentScenes[i].prompt, seed2);
-            currentScenes[i].imgBlob=result2.blob;
-            imageBlobs[i]=result2.blob;
-            updateCardImage(i,URL.createObjectURL(result2.blob),result2.source);
+            var r2=await attemptImage(i);
+            currentScenes[i].imgBlob=r2.blob;
+            imageBlobs[i]=r2.blob;
+            updateCardImage(i,URL.createObjectURL(r2.blob),r2.source);
             successCount++;
-          }catch(e2){
-            updateCardStatus(i,'failed');
-            failCount++;
-          }
-        } else {
+            retried=true;
+          }catch(e2){ /* fall through */ }
+        }
+
+        // Rate limit or timeout — shorter wait then retry
+        if(!retried && (err.message.indexOf('429')>-1||err.message.indexOf('timeout')>-1||err.message.indexOf('503')>-1)){
+          updateCardStatus(i,'waiting');
+          await sleep(8000);
+          try{
+            var r3=await attemptImage(i);
+            currentScenes[i].imgBlob=r3.blob;
+            imageBlobs[i]=r3.blob;
+            updateCardImage(i,URL.createObjectURL(r3.blob),r3.source);
+            successCount++;
+            retried=true;
+          }catch(e3){ /* fall through */ }
+        }
+
+        if(!retried){
           updateCardStatus(i,'failed');
           failCount++;
+          // Don't stop — keep going with next scene
+          await sleep(2000);
         }
       }
     }
