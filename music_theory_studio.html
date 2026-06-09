@@ -1155,43 +1155,54 @@ var NE=(function(){
     var c=style&&style.color?style.color:'#e8c96a';
     var bg=style&&style.bg?style.bg:'#1a2a4a';
     var cls=classify(sceneText);if(!cls)return null;
-    var W=1280,H=720;
-    var hdr='<svg width="100%" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" role="img"><title>'+cls.type+'</title><desc>Music theory notation</desc><rect width="'+W+'" height="'+H+'" fill="'+bg+'" rx="8"/>';
-    var ftr='</svg>';
-    var clefLayer='',noteLayer='',title='';
+    return generateFromRoute(cls,style);
+  }
 
-    if(cls.type==='scale'){
-      var ns=SCALES[cls.name]||SCALES['C major'];
+  function generateFromRoute(route,style){
+    var c=style&&style.color?style.color:'#e8c96a';
+    var bg=style&&style.bg?style.bg:'#1a2a4a';
+    if(!route||route.type==='flux')return null;
+    var W=1280,H=720;
+    var hdr='<svg width="100%" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" role="img"><title>'+(route.label||route.subtype||'notation')+'</title><desc>Music theory notation</desc><rect width="'+W+'" height="'+H+'" fill="'+bg+'" rx="8"/>';
+    var ftr='</svg>';
+    var clefLayer='',noteLayer='',title=route.label||'';
+    var clefType=route.clef||'treble';
+
+    var sub=route.subtype||route.type||'';
+
+    if(sub==='scale'){
+      var scaleName=route.key||'C major';
+      var ns=route.notes||(SCALES[scaleName]||SCALES['C major']);
+      if(!title)title=scaleName+' scale';
       var clefW=58,sp=Math.floor((SW-clefW)/ns.length),sx=SL+clefW;
-      title=cls.name+' scale';
-      clefLayer+=cls.clef==='bass'?bclef(0,c):tclef(0,c);
-      for(var i=0;i<ns.length;i++)noteLayer+=note(ns[i],sx+i*sp,'quarter',cls.clef,c);
+      clefLayer+=clefType==='bass'?bclef(0,c):tclef(0,c);
+      for(var i=0;i<ns.length;i++)noteLayer+=note(ns[i],sx+i*sp,'quarter',clefType,c,bg);
       for(var i=0;i<ns.length;i++){var lbl=ns[i].replace(/[0-9]/g,'').replace('#','♯').replace('b','♭');noteLayer+='<text x="'+(sx+i*sp)+'" y="195" text-anchor="middle" font-family="sans-serif" font-size="10" fill="'+c+'" opacity="0.6">'+lbl+'</text>';}
     }
-    else if(cls.type==='chord'){
-      var ns=CHORDS[cls.name]||CHORDS['C major'];
-      var cx=W*0.48;
-      title=cls.name+' chord';
-      clefLayer+=cls.clef==='bass'?bclef(0,c):tclef(0,c);
-      noteLayer+=chord(ns,cx,'half',cls.clef,c);
+    else if(sub==='chord'){
+      var chordName=route.key||'C major';
+      var ns=route.notes||(CHORDS[chordName]||CHORDS['C major']);
+      if(!title)title=chordName+' chord';
+      var cx2=W*0.48;
+      clefLayer+=clefType==='bass'?bclef(0,c):tclef(0,c);
+      noteLayer+=chord(ns,cx2,'half',clefType,c,bg);
       var lbls=ns.map(function(n){return n.replace(/[0-9]/g,'').replace('#','♯').replace('b','♭');}).join(' – ');
-      noteLayer+='<text x="'+cx+'" y="195" text-anchor="middle" font-family="sans-serif" font-size="11" fill="'+c+'" opacity="0.6">'+lbls+'</text>';
+      noteLayer+='<text x="'+cx2+'" y="195" text-anchor="middle" font-family="sans-serif" font-size="11" fill="'+c+'" opacity="0.6">'+lbls+'</text>';
     }
-    else if(cls.type==='note_values'){
+    else if(sub==='note_values'){
       var types=['whole','half','quarter','eighth'],lbls2=['Whole','Half','Quarter','Eighth'],beats=['4 beats','2 beats','1 beat','½ beat'];
-      title='Note values';
+      if(!title)title='Note values';
       clefLayer+=tclef(0,c);
       for(var i=0;i<types.length;i++){
         var x2=SL+60+i*(SW/5);
-        noteLayer+=note('B4',x2,types[i],'treble',c);
+        noteLayer+=note('B4',x2,types[i],'treble',c,bg);
         noteLayer+='<text x="'+x2+'" y="185" text-anchor="middle" font-family="sans-serif" font-size="11" fill="'+c+'" opacity="0.8">'+lbls2[i]+'</text>';
         noteLayer+='<text x="'+x2+'" y="197" text-anchor="middle" font-family="sans-serif" font-size="10" fill="'+c+'" opacity="0.55">'+beats[i]+'</text>';
       }
     }
-    else if(cls.type==='staff_clef'){
-      var cn=cls.clef==='bass'?'Bass clef':'Treble clef';
-      title=cn;
-      if(cls.clef==='bass'){
+    else if(sub==='staff_clef'){
+      if(!title)title=clefType==='bass'?'Bass clef':'Treble clef';
+      if(clefType==='bass'){
         clefLayer+=bclef(0,c);
         noteLayer+='<line x1="'+(SL+SW-30)+'" y1="'+ly(4)+'" x2="'+(SL+SW+5)+'" y2="'+ly(4)+'" stroke="'+c+'" stroke-dasharray="3,2" stroke-width="1" opacity="0.5"/>';
         noteLayer+='<text x="'+(SL+SW+10)+'" y="'+(ly(4)+4)+'" font-family="sans-serif" font-size="10" fill="'+c+'" opacity="0.7">F line</text>';
@@ -1201,16 +1212,51 @@ var NE=(function(){
         noteLayer+='<text x="'+(SL+SW+10)+'" y="'+(ly(2)+4)+'" font-family="sans-serif" font-size="10" fill="'+c+'" opacity="0.7">G line</text>';
       }
     }
-    else if(cls.type==='interval'){
-      title='Perfect fifth interval (C – G)';
+    else if(sub==='interval'){
+      var ns2=route.notes||['C4','G4'];
+      if(!title)title='Interval: '+(ns2[0]||'')+'–'+(ns2[1]||'');
       clefLayer+=tclef(0,c);
-      noteLayer+=note('C4',W*0.4,'half','treble',c);
-      noteLayer+=note('G4',W*0.55,'half','treble',c);
-      noteLayer+='<text x="'+(W*0.475)+'" y="195" text-anchor="middle" font-family="sans-serif" font-size="11" fill="'+c+'" opacity="0.6">7 half steps</text>';
+      noteLayer+=note(ns2[0],W*0.38,'half','treble',c,bg);
+      noteLayer+=note(ns2[1],W*0.55,'half','treble',c,bg);
+      if(route.label)noteLayer+='<text x="'+(W*0.465)+'" y="195" text-anchor="middle" font-family="sans-serif" font-size="11" fill="'+c+'" opacity="0.6">'+route.label+'</text>';
+    }
+    else if(sub==='key_signature'){
+      if(!title)title=(route.key||'C major')+' key signature';
+      clefLayer+=clefType==='bass'?bclef(0,c):tclef(0,c);
+      noteLayer+='<text x="'+(W/2)+'" y="'+(H/2+20)+'" text-anchor="middle" font-family="serif" font-size="48" fill="'+c+'" opacity="0.9">'+(route.label||title)+'</text>';
+    }
+    else if(sub==='time_signature'){
+      var parts=(route.key||'4/4').split('/');
+      var top=parts[0]||'4',bot=parts[1]||'4';
+      if(!title)title=(route.key||'4/4')+' time signature';
+      clefLayer+=tclef(0,c);
+      noteLayer+='<text x="'+(SL+80)+'" y="'+(ly(4)+8)+'" text-anchor="middle" font-family="serif" font-size="'+(SLS*4)+'" fill="'+c+'">'+top+'</text>';
+      noteLayer+='<text x="'+(SL+80)+'" y="'+(ly(2)+8)+'" text-anchor="middle" font-family="serif" font-size="'+(SLS*4)+'" fill="'+c+'">'+bot+'</text>';
+    }
+    else if(sub==='note_names'){
+      // Show labeled notes A B C D E F G on staff
+      var noteNames=route.notes||['C4','D4','E4','F4','G4','A4','B4'];
+      if(!title)title='Note names';
+      clefLayer+=tclef(0,c);
+      var sp2=Math.floor((SW-60)/noteNames.length),sx2=SL+60;
+      for(var i=0;i<noteNames.length;i++){
+        noteLayer+=note(noteNames[i],sx2+i*sp2,'quarter','treble',c,bg);
+        var lbl2=noteNames[i].replace(/[0-9]/g,'').replace('#','♯').replace('b','♭');
+        noteLayer+='<text x="'+(sx2+i*sp2)+'" y="195" text-anchor="middle" font-family="sans-serif" font-size="10" fill="'+c+'" opacity="0.8">'+lbl2+'</text>';
+      }
+    }
+    else if(sub==='rhythm'){
+      var rhythmNotes=route.notes||['quarter','quarter','eighth','eighth','quarter'];
+      if(!title)title='Rhythm pattern';
+      clefLayer+=tclef(0,c);
+      var sp3=Math.floor((SW-60)/rhythmNotes.length),sx3=SL+60;
+      for(var i=0;i<rhythmNotes.length;i++)noteLayer+=note('B4',sx3+i*sp3,rhythmNotes[i],'treble',c,bg);
+    }
+    else {
+      return null;
     }
 
-    // RENDER ORDER: clef first, then notes, then staff lines ON TOP so they cross the clef cleanly
-    var titleSvg='<text x="'+W/2+'" y="22" text-anchor="middle" font-family="sans-serif" font-size="14" fill="'+c+'" font-weight="500">'+title+'</text>';
+    var titleSvg=title?'<text x="'+W/2+'" y="22" text-anchor="middle" font-family="sans-serif" font-size="14" fill="'+c+'" font-weight="500">'+title+'</text>':'';
     return hdr+titleSvg+clefLayer+noteLayer+staff(c)+ftr;
   }
 
@@ -1228,35 +1274,85 @@ var NE=(function(){
       img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgStr);
     });
   }
-  return{classify:classify,generate:generate,toPNGBlob:toPNGBlob,toBlob:toBlob};
+  return{classify:classify,generate:generate,generateFromRoute:generateFromRoute,toPNGBlob:toPNGBlob,toBlob:toBlob};
 })();
 
 
 // ============================================================
 // SMART IMAGE ROUTER — notation engine or FLUX
 // ============================================================
+// ============================================================
+// SMART IMAGE ROUTER — Claude decides notation vs Hugging Face
+// ============================================================
+async function routeScene(sceneText, styleStr) {
+  // Ask Groq/Llama to decide: notation engine or Hugging Face?
+  // Returns JSON: { type: 'notation', instruction: {...} }
+  //           or: { type: 'flux', prompt: '...' }
+  var routePrompt =
+    'You are the image router for a music theory YouTube channel called MusicIsEasy.\n' +
+    'Given a scene of spoken text, decide whether to render it with a NOTATION ENGINE or an AI IMAGE GENERATOR.\n\n' +
+    'NOTATION ENGINE can render:\n' +
+    '- Named scales (e.g. C major scale, A minor scale, pentatonic scale)\n' +
+    '- Named chords (e.g. C major chord, G7, Am, diminished chord)\n' +
+    '- Note values (whole, half, quarter, eighth notes, rests, dotted notes)\n' +
+    '- Staff and clef diagrams (treble clef, bass clef, grand staff)\n' +
+    '- Intervals (half step, whole step, third, fifth, octave etc)\n' +
+    '- Key signatures (C major, G major, F minor etc)\n' +
+    '- Time signatures (4/4, 3/4, 6/8 etc)\n' +
+    '- Note names on staff (A B C D E F G, labelled notes)\n' +
+    '- Rhythm patterns (beamed notes, rests in a bar)\n\n' +
+    'AI IMAGE GENERATOR should be used for:\n' +
+    '- Historical or cultural context (ancient music, orchestras, famous composers)\n' +
+    '- Physical instruments (piano keyboard, guitar, violin)\n' +
+    '- Abstract concepts (emotion, feeling, mood in music)\n' +
+    '- Anything visual/narrative that is NOT a music theory diagram\n\n' +
+    'SCENE TEXT: "' + sceneText + '"\n\n' +
+    'Respond with ONLY valid JSON, no explanation:\n' +
+    'If notation: {"type":"notation","subtype":"scale|chord|note_values|staff_clef|interval|key_signature|time_signature|note_names|rhythm","key":"C major","label":"C Major Scale","clef":"treble","notes":["C4","D4","E4","F4","G4","A4","B4","C5"]}\n' +
+    'If flux: {"type":"flux","prompt":"[specific visual description, max 40 words, directly illustrating the scene, music theory educational style, clean minimal illustration, dark navy background with gold accents]"}\n' +
+    'For notation, include only relevant fields. For flux, make the prompt highly specific to what is being said, not generic.\n' +
+    'Only output the JSON object, nothing else.';
+
+  try {
+    var raw = await callGemini(routePrompt, 500);
+    raw = raw.replace(/```json|```/g, '').trim();
+    // Extract JSON object if wrapped in extra text
+    var match = raw.match(/\{[\s\S]*\}/);
+    if (match) raw = match[0];
+    return JSON.parse(raw);
+  } catch(e) {
+    // Fallback: use flux with a specific prompt
+    return { type: 'flux', prompt: 'Music theory educational illustration: ' + sceneText.slice(0,60) + '. Clean minimal diagram, dark navy background, gold accents.' };
+  }
+}
+
 async function generateImageForScene(sceneText, prompt, seed) {
-  // Check if this scene needs precise notation
   var artKey = document.getElementById('artStyle') ? document.getElementById('artStyle').value : 'navy';
   var colorMap = { navy:'#e8c96a', chalkboard:'#e8c96a', white:'#e8644a', flat:'#e8c96a', notebook:'#f5c842' };
   var bgMap   = { navy:'#1a2a4a', chalkboard:'#0d1826', white:'#ffffff', flat:'#1a2a4a', notebook:'#fdf6e3' };
-
   var style = { color: colorMap[artKey]||'#e8c96a', bg: bgMap[artKey]||'#1a2a4a' };
-  var svgStr = NE.generate(sceneText, style);
+  var styleStr = artKey + ' music theory educational';
 
-  if (svgStr) {
-    // Use notation engine — convert to PNG blob for consistent handling
-    try {
-      var pngBlob = await NE.toPNGBlob(svgStr);
-      return { blob: pngBlob, source: 'notation' };
-    } catch(e) {
-      // PNG conversion failed — fall back to SVG blob
-      return { blob: NE.toBlob(svgStr), source: 'notation' };
+  // Ask Claude to route this scene
+  var route = await routeScene(sceneText, styleStr);
+
+  if (route.type === 'notation') {
+    // Build a scene description string the notation engine can use
+    // Pass routing info directly to enhanced generate function
+    var svgStr = NE.generateFromRoute(route, style);
+    if (svgStr) {
+      try {
+        var pngBlob = await NE.toPNGBlob(svgStr);
+        return { blob: pngBlob, source: 'notation' };
+      } catch(e) {
+        return { blob: NE.toBlob(svgStr), source: 'notation' };
+      }
     }
   }
 
-  // Not a notation scene — use FLUX
-  var fluxBlob = await generateImage(prompt, seed);
+  // Use Hugging Face with the routed prompt (much more specific than before)
+  var fluxPrompt = route.prompt || prompt;
+  var fluxBlob = await generateImage(fluxPrompt, seed);
   return { blob: fluxBlob, source: 'flux' };
 }
 
@@ -1464,7 +1560,7 @@ async function produceVideo(){
     setProgress(50,'Step 2b — Generating image prompts for '+currentScenes.length+' scenes...');
 
     var promptsText=currentScenes.map(function(s,i){return'Scene '+(i+1)+': '+s.text;}).join('\n');
-    var promptInstr='You are writing image generation prompts for a music theory YouTube video called "'+channelName+'". Each prompt goes directly to an AI image generator.\n\nStyle for ALL images: '+styleStr+'\n\nFor each scene write ONE image prompt (max 35 words) that:\n1. Directly and specifically illustrates what is being spoken about in that scene\n2. Is concrete and visual — describe exactly what should be drawn\n3. Avoids generic music imagery — no random floating notes, no abstract music swirls\n4. Ends with the art style: "'+styleStr+'"\n5. No text or labels in the image\n\nOutput ONLY numbered prompts, nothing else:\n1. [prompt]\n2. [prompt]\n\nScenes:\n'+promptsText;
+    var promptInstr='You are writing image generation prompts for a music theory YouTube channel called "'+channelName+'". Each prompt goes directly to an AI image generator (Hugging Face FLUX).\n\nStyle for ALL images: '+styleStr+'\n\nFor each scene write ONE highly specific image prompt (max 40 words) that:\n1. DIRECTLY illustrates EXACTLY what is being spoken about — be specific, not generic\n2. If a specific instrument is mentioned → show that instrument up close\n3. If a historical period or person is mentioned → show that era/person\n4. If an emotion or feeling is described → show a musician expressing that feeling\n5. NEVER use generic "floating musical notes" or abstract swirls\n6. End with: "clean minimal educational illustration, dark navy background, gold accents"\n7. No text or labels in the image\n\nIMPORTANT: Many scenes will be handled by a notation engine (scales, chords, note values, staff diagrams) — for those scenes still write a prompt as backup in case the notation engine fails.\n\nOutput ONLY numbered prompts, nothing else:\n1. [prompt]\n2. [prompt]\n\nScenes:\n'+promptsText;
 
     var promptsRaw=await callGemini(promptInstr,5000);
     var promptLines=promptsRaw.split('\n').filter(function(l){return /^\d+\./.test(l.trim());});
