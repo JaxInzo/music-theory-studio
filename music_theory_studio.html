@@ -1655,55 +1655,66 @@ async function produceVideo(){
     // ---- STEP 4: GENERATE IMAGES ONE BY ONE ----
     var successCount=0;
     var failCount=0;
+    clearErrorLog();
 
-    for(var i=0;i<currentScenes.length;i++){
-      var pct=60+Math.floor((i/currentScenes.length)*35);
-      setProgress(pct,'Generating image '+(i+1)+' of '+currentScenes.length+'...');
-      updateCardStatus(i,'generating');
+    async function attemptImage(idx){
+      var seed=Math.floor(Math.random()*2147483647);
+      return await generateImageForScene(currentScenes[idx].text, currentScenes[idx].route, seed);
+    }
 
-      var attemptImage=async function(idx){
-        var seed=Math.floor(Math.random()*2147483647);
-        return await generateImageForScene(currentScenes[idx].text, currentScenes[idx].route, seed);
-      };
+    for(var ii=0;ii<currentScenes.length;ii++){
+      await (async function(i){
+        var pct=60+Math.floor((i/currentScenes.length)*35);
+        setProgress(pct,'Generating image '+(i+1)+' of '+currentScenes.length+'...');
+        updateCardStatus(i,'generating');
 
-      try{
-        if(i>0) await sleep(800);
-        var result=await attemptImage(i);
-        currentScenes[i].imgBlob=result.blob;
-        imageBlobs[i]=result.blob;
-        updateCardImage(i,URL.createObjectURL(result.blob),result.source);
-        successCount++;
-      }catch(err){
-        var retried=false;
+        try{
+          if(i>0) await sleep(800);
+          var result=await attemptImage(i);
+          currentScenes[i].imgBlob=result.blob;
+          imageBlobs[i]=result.blob;
+          updateCardImage(i,URL.createObjectURL(result.blob),result.source);
+          successCount++;
+        }catch(err){
+          var retried=false;
+          var errMsg=err.message||'Unknown error';
 
-        if(err.message==='model_loading'){
-          updateCardStatus(i,'waiting');
-          await sleep(25000);
-          try{
-            var r2=await attemptImage(i);
-            currentScenes[i].imgBlob=r2.blob; imageBlobs[i]=r2.blob;
-            updateCardImage(i,URL.createObjectURL(r2.blob),r2.source);
-            successCount++; retried=true;
-          }catch(e2){}
+          if(errMsg==='model_loading'){
+            updateCardStatus(i,'waiting','HF model loading — retrying in 25s...');
+            await sleep(25000);
+            try{
+              var r2=await attemptImage(i);
+              currentScenes[i].imgBlob=r2.blob; imageBlobs[i]=r2.blob;
+              updateCardImage(i,URL.createObjectURL(r2.blob),r2.source);
+              successCount++; retried=true;
+            }catch(e2){errMsg='Model still loading after retry: '+e2.message;}
+          }
+
+          if(!retried&&(errMsg.indexOf('429')>-1||errMsg.indexOf('503')>-1||errMsg.indexOf('timeout')>-1)){
+            updateCardStatus(i,'waiting','Rate limited — retrying in 8s...');
+            await sleep(8000);
+            try{
+              var r3=await attemptImage(i);
+              currentScenes[i].imgBlob=r3.blob; imageBlobs[i]=r3.blob;
+              updateCardImage(i,URL.createObjectURL(r3.blob),r3.source);
+              successCount++; retried=true;
+            }catch(e3){errMsg='Still failed after retry: '+e3.message;}
+          }
+
+          if(!retried){
+            // Classify error for user
+            var displayErr=errMsg;
+            if(errMsg.indexOf('401')>-1||errMsg.indexOf('403')>-1) displayErr='Invalid API key — check HF key has inference permissions';
+            else if(errMsg.indexOf('429')>-1) displayErr='Rate limit hit — wait a minute and retry this scene';
+            else if(errMsg.indexOf('SVG')>-1||errMsg.indexOf('PNG')>-1) displayErr='Notation render failed: '+errMsg;
+            else if(errMsg.indexOf('JSON')>-1||errMsg.indexOf('parse')>-1) displayErr='Router returned bad JSON — scene will use fallback next retry';
+            else if(errMsg.indexOf('fetch')>-1||errMsg.indexOf('network')>-1) displayErr='Network error — check internet connection';
+            updateCardStatus(i,'failed',displayErr);
+            failCount++;
+            await sleep(500);
+          }
         }
-
-        if(!retried&&(err.message.indexOf('429')>-1||err.message.indexOf('503')>-1||err.message.indexOf('timeout')>-1)){
-          updateCardStatus(i,'waiting');
-          await sleep(8000);
-          try{
-            var r3=await attemptImage(i);
-            currentScenes[i].imgBlob=r3.blob; imageBlobs[i]=r3.blob;
-            updateCardImage(i,URL.createObjectURL(r3.blob),r3.source);
-            successCount++; retried=true;
-          }catch(e3){}
-        }
-
-        if(!retried){
-          updateCardStatus(i,'failed');
-          failCount++;
-          await sleep(1000);
-        }
-      }
+      })(ii);
     }
 
     setProgress(100,'Done! '+successCount+' images generated'+(failCount>0?', '+failCount+' failed — click Retry on those':'')+'.');
@@ -1744,28 +1755,75 @@ function renderReviewGrid(){
       +'<div class="img-footer">'
       +'<div class="img-scene-label">Scene '+(i+1)+'</div>'
       +'<div class="img-spoken" id="spoken_'+i+'">'+escHtml(s.text)+'</div>'
+      +'<div id="routeInfo_'+i+'" style="display:none;font-size:9px;color:var(--text3);padding:2px 4px;background:rgba(255,255,255,0.04);border-radius:3px;margin-top:2px;word-break:break-word;"></div>'
       +'<div class="img-actions">'
       +'<button class="img-btn regen" id="regenBtn_'+i+'" onclick="regenImage('+i+')" disabled>↺ Regenerate</button>'
       +'<button class="img-btn dl" id="dlBtn_'+i+'" onclick="dlImage('+i+')" disabled>⬇ Save</button>'
       +'</div></div></div>';
   });
 
-  html+='</div></div>';
+  html+='</div></div>'
+    // Error log panel — hidden until errors occur
+    +'<div id="errorLog" style="display:none;margin-top:16px;background:var(--bg2);border:0.5px solid var(--red);border-radius:8px;padding:12px;">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
+    +'<div style="font-size:12px;font-weight:600;color:var(--red);">⚠ Error Log</div>'
+    +'<button onclick="clearErrorLog()" style="font-size:10px;background:none;border:0.5px solid var(--border);color:var(--text3);padding:2px 8px;border-radius:4px;cursor:pointer;">Clear</button>'
+    +'</div>'
+    +'<div id="errorLogList" style="max-height:120px;overflow-y:auto;font-family:monospace;"></div>'
+    +'</div>';
   document.getElementById('produceOutput').innerHTML=html;
 }
 
-function updateCardStatus(i,status){
+function updateCardStatus(i,status,msg){
   var ph=document.getElementById('ph_'+i);
   if(!ph)return;
   if(status==='generating'){
+    ph.style.display='flex';
     ph.innerHTML='<svg class="pulsing spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span style="font-size:10px;color:var(--text3);">Generating...</span>';
+  } else if(status==='routing'){
+    ph.style.display='flex';
+    ph.innerHTML='<svg class="pulsing spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span style="font-size:10px;color:var(--text3);">Planning image...</span>';
   } else if(status==='waiting'){
+    ph.style.display='flex';
     ph.innerHTML='<svg class="pulsing" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span style="font-size:10px;color:var(--text3);">Model loading, retrying...</span>';
   } else if(status==='failed'){
-    ph.innerHTML='<span style="font-size:11px;color:var(--red);">✕ Failed</span>';
-    document.getElementById('card_'+i).classList.add('flagged');
+    var errHtml='<div style="padding:8px;text-align:left;width:100%;">'
+      +'<div style="font-size:11px;color:var(--red);font-weight:600;margin-bottom:4px;">✕ Failed</div>'
+      +(msg?'<div style="font-size:10px;color:var(--text3);line-height:1.4;word-break:break-word;">'+escHtml(msg)+'</div>':'')
+      +'</div>';
+    ph.style.display='flex';
+    ph.innerHTML=errHtml;
+    var card=document.getElementById('card_'+i);
+    if(card)card.classList.add('flagged');
     var rb=document.getElementById('regenBtn_'+i);if(rb)rb.disabled=false;
   }
+  // Log to error panel
+  if(status==='failed'&&msg) logError('Scene '+(i+1)+': '+msg);
+}
+
+// ── ERROR LOG PANEL ──
+var _errorLog=[];
+function logError(msg){
+  _errorLog.push(new Date().toLocaleTimeString()+' — '+msg);
+  var panel=document.getElementById('errorLog');
+  if(panel){
+    panel.style.display='block';
+    var list=document.getElementById('errorLogList');
+    if(list){
+      var li=document.createElement('div');
+      li.style.cssText='font-size:11px;padding:3px 0;border-bottom:0.5px solid rgba(255,255,255,0.05);color:var(--red);';
+      li.textContent=_errorLog[_errorLog.length-1];
+      list.appendChild(li);
+      list.scrollTop=list.scrollHeight;
+    }
+  }
+}
+function clearErrorLog(){
+  _errorLog=[];
+  var list=document.getElementById('errorLogList');
+  if(list)list.innerHTML='';
+  var panel=document.getElementById('errorLog');
+  if(panel)panel.style.display='none';
 }
 
 function updateCardImage(i,url,source){
@@ -1777,13 +1835,28 @@ function updateCardImage(i,url,source){
   if(card)card.classList.add('approved');
   var rb=document.getElementById('regenBtn_'+i);if(rb)rb.disabled=false;
   var db=document.getElementById('dlBtn_'+i);if(db)db.disabled=false;
-  // Show notation badge if generated by engine
-  if(source==='notation'){
+  // Show source badge
+  if(card){
+    // Remove old badge if any
+    var old=card.querySelector('.src-badge');if(old)old.remove();
     var badge=document.createElement('div');
-    badge.style.cssText='position:absolute;top:4px;right:4px;background:rgba(201,168,76,0.9);color:#1a1408;font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;letter-spacing:0.04em;';
-    badge.textContent='NOTATION';
-    var card2=document.getElementById('card_'+i);
-    if(card2)card2.appendChild(badge);
+    badge.className='src-badge';
+    var isNotation=source==='notation';
+    badge.style.cssText='position:absolute;top:4px;right:4px;font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;letter-spacing:0.04em;'
+      +(isNotation?'background:rgba(201,168,76,0.92);color:#1a1408;':'background:rgba(91,159,212,0.92);color:#fff;');
+    badge.textContent=isNotation?'NOTATION':'AI IMAGE';
+    card.appendChild(badge);
+    // Show route decision if available
+    var route=currentScenes[i]&&currentScenes[i].route;
+    var routeEl=document.getElementById('routeInfo_'+i);
+    if(routeEl&&route){
+      if(route.type==='notation'){
+        routeEl.textContent='🎵 '+( route.subtype||'notation')+(route.key?' — '+route.key:'');
+      } else {
+        routeEl.textContent='🖼 AI: '+(route.prompt||'').slice(0,60)+'...';
+      }
+      routeEl.style.display='block';
+    }
   }
 }
 
@@ -1803,7 +1876,11 @@ async function regenImage(i){
     imageBlobs[i]=result.blob;
     updateCardImage(i,URL.createObjectURL(result.blob),result.source);
   }catch(err){
-    updateCardStatus(i,'failed');
+    var msg=err.message||'Unknown error';
+    if(msg.indexOf('401')>-1||msg.indexOf('403')>-1) msg='Invalid API key';
+    else if(msg.indexOf('429')>-1) msg='Rate limit — wait a moment and try again';
+    else if(msg.indexOf('model_loading')>-1) msg='Model loading — try again in 30s';
+    updateCardStatus(i,'failed',msg);
   }
   if(btn){btn.disabled=false;btn.textContent='↺ Regenerate';}
 }
