@@ -295,16 +295,12 @@ RESTS (fixed positions always)
       </div>
       <div class="grid2" style="margin-top:14px;">
         <div class="field">
-          <label for="hfKey">Hugging Face API key — image generation</label>
-          <div class="pw-wrap">
-            <input type="password" id="hfKey" placeholder="hf_..." oninput="saveKey('hf',this.value)">
-            <button class="pw-toggle" onclick="toggleKey('hfKey','eye3')" aria-label="Toggle"><svg id="eye3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-          </div>
+          <label for="hfKey">Image generation — Pollinations.ai (no API key needed)</label>
           <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
             <button onclick="testHFConnection()" style="font-size:11px;padding:4px 12px;background:var(--bg3);border:0.5px solid var(--border);color:var(--text2);border-radius:6px;cursor:pointer;">🔌 Test Connection</button>
             <span id="hfTestResult" style="font-size:11px;color:var(--text3);"></span>
           </div>
-          <p style="font-size:11px;color:var(--text3);margin-top:4px;"><a href="https://huggingface.co/settings/tokens" target="_blank" style="color:var(--gold);text-decoration:none;">huggingface.co/settings/tokens</a> — free, unlimited images</p>
+          <p style="font-size:11px;color:var(--text3);margin-top:4px;">Free AI image generation via <a href="https://pollinations.ai" target="_blank" style="color:var(--gold);text-decoration:none;">pollinations.ai</a> — no sign-up required</p>
         </div>
       </div>
     </div>
@@ -559,7 +555,7 @@ function showSave(){var el=document.getElementById('saveIndicator');el.style.dis
 function loadSaved(){
   var ck=localStorage.getItem('mts_key_claude');if(ck){document.getElementById('claudeKey').value=ck;document.getElementById('groqKey').value=ck;}
   var gk=localStorage.getItem('mts_key_groq');if(gk){document.getElementById('groqKey').value=gk;document.getElementById('claudeKey').value=gk;}
-  var hk=localStorage.getItem('mts_key_hf');if(hk)document.getElementById('hfKey').value=hk;
+  var hk=localStorage.getItem('mts_key_hf');if(hk&&document.getElementById('hfKey'))document.getElementById('hfKey').value=hk;
   ['tone','audience','length','complexity'].forEach(function(f){var v=localStorage.getItem('mts_def_'+f);if(v&&document.getElementById(f))document.getElementById(f).value=v;});
   ['avoid','channelName','channelTagline','globalAvoid'].forEach(function(f){var v=localStorage.getItem('mts_'+f);if(v&&document.getElementById(f))document.getElementById(f).value=v;});
 }
@@ -1449,84 +1445,45 @@ async function generateImageForScene(sceneText, route, seed) {
 // ============================================================
 async function testHFConnection(){
   var el=document.getElementById('hfTestResult');
-  var key=document.getElementById('hfKey').value.trim();
-  if(!key){el.style.color='var(--red)';el.textContent='⚠ Enter your HF key first';return;}
-  el.style.color='var(--text3)';el.textContent='Testing...';
+  el.style.color='var(--text3)';el.textContent='Testing image API...';
   try{
-    var r=await fetch('https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
-      body:JSON.stringify({inputs:'test',parameters:{width:64,height:64,num_inference_steps:1}})
-    });
-    if(r.status===401||r.status===403){el.style.color='var(--red)';el.textContent='✕ Invalid key — check permissions at huggingface.co/settings/tokens';return;}
-    if(r.status===503){el.style.color='var(--gold)';el.textContent='⏳ Connected! Model loading — this is normal, it will be ready when you run.';return;}
-    if(r.status===429){el.style.color='var(--gold)';el.textContent='⚠ Connected but rate limited — wait a minute then try running.';return;}
-    if(r.ok||r.status===200){el.style.color='var(--green)';el.textContent='✓ Connected and ready!';return;}
-    el.style.color='var(--gold)';el.textContent='⚠ Connected (status '+r.status+') — should work when running.';
+    // Test with a tiny image
+    var r=await fetch('https://image.pollinations.ai/prompt/test?width=64&height=64&nologo=true',{method:'GET'});
+    if(r.ok){
+      el.style.color='var(--green)';el.textContent='✓ Image API connected and ready!';
+    } else {
+      el.style.color='var(--gold)';el.textContent='⚠ API responded with status '+r.status+' — may still work for full images.';
+    }
   }catch(err){
     var msg=err.message||String(err);
-    if(msg.toLowerCase().indexOf('failed to fetch')>-1||msg.toLowerCase().indexOf('cors')>-1||msg.toLowerCase().indexOf('networkerror')>-1){
-      el.style.color='var(--red)';
-      el.textContent='✕ CORS/Network error — try opening this file via a local server instead of directly from your desktop. In VS Code: right-click the file → Open with Live Server.';
-    } else {
-      el.style.color='var(--red)';el.textContent='✕ '+msg;
-    }
+    el.style.color='var(--red)';el.textContent='✕ '+msg;
   }
 }
 
 
 async function generateImage(prompt, seed){
-  var key=document.getElementById('hfKey').value.trim();
-  if(!key) throw new Error('No Hugging Face API key — please enter your HF key in the settings.');
+  // Pollinations.ai — free, no API key, no CORS issues, works from any browser
   var uniqueSeed = seed !== undefined ? seed : Math.floor(Math.random()*2147483647);
-
-  // Use stable inference endpoint only (router endpoint has CORS issues)
-  var endpoint='https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell';
+  var encoded = encodeURIComponent(prompt);
+  var url = 'https://image.pollinations.ai/prompt/'+encoded
+    +'?width=1280&height=720&seed='+uniqueSeed+'&nologo=true&enhance=false';
 
   var r;
   try {
-    r = await fetch(endpoint, {
-      method:'POST',
-      headers:{
-        'Authorization':'Bearer '+key,
-        'Content-Type':'application/json',
-        'x-wait-for-model':'true'
-      },
-      body:JSON.stringify({
-        inputs:prompt,
-        parameters:{width:1280,height:720,num_inference_steps:4,guidance_scale:0.0,seed:uniqueSeed}
-      })
-    });
+    r = await fetch(url, { method:'GET' });
   } catch(fetchErr) {
-    // fetch() itself threw — this means CORS, network down, or DNS failure
-    // NOT a server error — the request never reached HF
-    var rawMsg = fetchErr.message || String(fetchErr);
-    if(rawMsg.toLowerCase().indexOf('cors')>-1 || rawMsg.toLowerCase().indexOf('failed to fetch')>-1 || rawMsg.toLowerCase().indexOf('networkerror')>-1) {
-      throw new Error('CORS/Network error reaching Hugging Face. If running from a local file, try hosting the app on a simple server (e.g. VS Code Live Server). Raw: '+rawMsg);
-    }
-    throw new Error('Could not reach Hugging Face: '+rawMsg);
+    throw new Error('Network error reaching image API: '+fetchErr.message);
   }
 
   if(!r.ok){
-    var txt='';
-    try { txt=await r.text(); } catch(e){}
+    if(r.status===429) throw new Error('Rate limit — too many images at once. Will retry.');
     if(r.status===503) throw new Error('model_loading');
-    if(r.status===401||r.status===403) throw new Error('Invalid Hugging Face API key ('+r.status+') — check your key has Inference API permissions at huggingface.co/settings/tokens');
-    if(r.status===429) throw new Error('Rate limit (429) — Hugging Face free tier limit hit. Wait 60s and retry.');
-    if(r.status===422) throw new Error('Invalid request (422) — prompt may be too long or parameters invalid. Prompt: '+prompt.slice(0,60));
-    throw new Error('HF error '+r.status+': '+txt.slice(0,120));
+    throw new Error('Image API error '+r.status);
   }
 
-  var ct=r.headers.get('content-type')||'';
-  if(ct.indexOf('application/json')>-1){
-    var json;
-    try { json=await r.json(); } catch(e){ throw new Error('HF returned non-image JSON response'); }
-    if(json.error) throw new Error('HF model error: '+json.error);
-    throw new Error('HF returned JSON instead of image: '+JSON.stringify(json).slice(0,100));
-  }
-
+  var ct = r.headers.get('content-type')||'';
   if(!ct.startsWith('image/')){
-    throw new Error('HF returned unexpected content type: '+ct+'. Expected image/jpeg or image/png.');
+    throw new Error('Unexpected response type: '+ct);
   }
 
   return await r.blob();
@@ -1656,10 +1613,8 @@ async function produceVideo(){
 
   var claudeKey=document.getElementById('claudeKey').value.trim();
   var groqKey=document.getElementById('groqKey').value.trim();
-  var hfKey=document.getElementById('hfKey').value.trim();
-  if(!claudeKey){setStatus('produceStatus','Please enter your Gemini API key in Tab 1.','error');return;}
+  if(!claudeKey){setStatus('produceStatus','Please enter your Groq API key in Tab 1.','error');return;}
   if(!groqKey){setStatus('produceStatus','Please enter your Groq API key in Tab 1.','error');return;}
-  if(!hfKey){setStatus('produceStatus','Please enter your Hugging Face API key in Tab 1.','error');return;}
 
   var artKey=document.getElementById('artStyle').value;
   var colorKey=document.getElementById('colorScheme').value;
