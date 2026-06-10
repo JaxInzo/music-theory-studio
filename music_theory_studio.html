@@ -647,7 +647,11 @@ async function transcribeAudio(audioFile){
 // NOTATION ENGINE — mathematically precise music theory SVG
 // ============================================================
 var NE=(function(){
-  var SLS=24,ST=280,SL=160,SW=960,NRX=7,NRY=4.5,SH=68;
+  // Output canvas: 1280x720. Staff centered vertically.
+  // SLS=24 (output size), staff of 5 lines spans 4*SLS=96px
+  // ST = top of staff. Center staff vertically: midpoint of staff = 720/2 = 360
+  // Staff midpoint = ST + 2*SLS = ST+48. So ST = 360-48 = 312. Add title space: ST=340
+  var SLS=24,ST=300,SL=180,SW=920,NRX=14,NRY=10,SH=80;
   function ly(n){return ST+(5-n)*SLS;}
   function sy(n){return ST+(5-n)*SLS-SLS/2;}
   var TMID=ly(3); // treble middle line y = B4 = line 3
@@ -1163,101 +1167,189 @@ var NE=(function(){
     var bg=style&&style.bg?style.bg:'#1a2a4a';
     if(!route||route.type==='flux')return null;
     var W=1280,H=720;
-    var hdr='<svg width="100%" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" role="img"><title>'+(route.label||route.subtype||'notation')+'</title><desc>Music theory notation</desc><rect width="'+W+'" height="'+H+'" fill="'+bg+'" rx="8"/>';
+
+    // Rich background with subtle decorative elements
+    var decorLayer=
+      // subtle corner ornaments
+      '<line x1="40" y1="40" x2="120" y2="40" stroke="'+c+'" stroke-width="1" opacity="0.2"/>'
+      +'<line x1="40" y1="40" x2="40" y2="120" stroke="'+c+'" stroke-width="1" opacity="0.2"/>'
+      +'<line x1="'+(W-40)+'" y1="40" x2="'+(W-120)+'" y2="40" stroke="'+c+'" stroke-width="1" opacity="0.2"/>'
+      +'<line x1="'+(W-40)+'" y1="40" x2="'+(W-40)+'" y2="120" stroke="'+c+'" stroke-width="1" opacity="0.2"/>'
+      +'<line x1="40" y1="'+(H-40)+'" x2="120" y2="'+(H-40)+'" stroke="'+c+'" stroke-width="1" opacity="0.2"/>'
+      +'<line x1="40" y1="'+(H-40)+'" x2="40" y2="'+(H-120)+'" stroke="'+c+'" stroke-width="1" opacity="0.2"/>'
+      +'<line x1="'+(W-40)+'" y1="'+(H-40)+'" x2="'+(W-120)+'" y2="'+(H-40)+'" stroke="'+c+'" stroke-width="1" opacity="0.2"/>'
+      +'<line x1="'+(W-40)+'" y1="'+(H-40)+'" x2="'+(W-40)+'" y2="'+(H-120)+'" stroke="'+c+'" stroke-width="1" opacity="0.2"/>'
+      // channel watermark
+      +'<text x="'+(W-48)+'" y="'+(H-22)+'" text-anchor="end" font-family="sans-serif" font-size="13" fill="'+c+'" opacity="0.3" font-style="italic">MusicIsEasy</text>';
+
+    var hdr='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" role="img">'
+      +'<rect width="'+W+'" height="'+H+'" fill="'+bg+'"/>'
+      +decorLayer;
     var ftr='</svg>';
     var clefLayer='',noteLayer='',title=route.label||'';
     var clefType=route.clef||'treble';
-
     var sub=route.subtype||route.type||'';
+
+    // Title treatment — large, centered at top
+    function titleSvg(t){
+      if(!t)return '';
+      return '<text x="'+W/2+'" y="60" text-anchor="middle" font-family="Georgia,serif" font-size="32" fill="'+c+'" font-weight="bold" opacity="0.95">'+t+'</text>'
+        +'<line x1="'+(W/2-120)+'" y1="74" x2="'+(W/2+120)+'" y2="74" stroke="'+c+'" stroke-width="1" opacity="0.4"/>';
+    }
 
     if(sub==='scale'){
       var scaleName=route.key||'C major';
       var ns=route.notes||(SCALES[scaleName]||SCALES['C major']);
-      if(!title)title=scaleName+' scale';
-      var clefW=58,sp=Math.floor((SW-clefW)/ns.length),sx=SL+clefW;
+      if(!title)title=scaleName.charAt(0).toUpperCase()+scaleName.slice(1)+' Scale';
+      var clefW=Math.round(SLS*4.5);
+      var available=SW-clefW-20;
+      var sp=Math.floor(available/(ns.length));
+      var sx=SL+clefW+sp*0.4;
       clefLayer+=clefType==='bass'?bclef(0,c):tclef(0,c);
-      for(var i=0;i<ns.length;i++)noteLayer+=note(ns[i],sx+i*sp,'quarter',clefType,c,bg);
-      for(var i=0;i<ns.length;i++){var lbl=ns[i].replace(/[0-9]/g,'').replace('#','♯').replace('b','♭');noteLayer+='<text x="'+(sx+i*sp)+'" y="195" text-anchor="middle" font-family="sans-serif" font-size="10" fill="'+c+'" opacity="0.6">'+lbl+'</text>';}
+      for(var i=0;i<ns.length;i++){
+        noteLayer+=note(ns[i],sx+i*sp,'quarter',clefType,c,bg);
+        var lbl=ns[i].replace(/[0-9]/g,'').replace('b','♭').replace('#','♯');
+        noteLayer+='<text x="'+(sx+i*sp)+'" y="'+(ly(1)+SLS*3)+'" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="'+c+'" opacity="0.75">'+lbl+'</text>';
+      }
+      // degree numbers
+      var degrees=['1','2','3','4','5','6','7','8'];
+      for(var i=0;i<Math.min(ns.length,8);i++){
+        noteLayer+='<text x="'+(sx+i*sp)+'" y="'+(ly(1)+SLS*4.5)+'" text-anchor="middle" font-family="sans-serif" font-size="16" fill="'+c+'" opacity="0.4">'+degrees[i]+'</text>';
+      }
     }
     else if(sub==='chord'){
       var chordName=route.key||'C major';
       var ns=route.notes||(CHORDS[chordName]||CHORDS['C major']);
-      if(!title)title=chordName+' chord';
-      var cx2=W*0.48;
+      if(!title)title=chordName.charAt(0).toUpperCase()+chordName.slice(1)+' Chord';
+      var cx2=W*0.5;
       clefLayer+=clefType==='bass'?bclef(0,c):tclef(0,c);
       noteLayer+=chord(ns,cx2,'half',clefType,c,bg);
-      var lbls=ns.map(function(n){return n.replace(/[0-9]/g,'').replace('#','♯').replace('b','♭');}).join(' – ');
-      noteLayer+='<text x="'+cx2+'" y="195" text-anchor="middle" font-family="sans-serif" font-size="11" fill="'+c+'" opacity="0.6">'+lbls+'</text>';
+      // Note labels spread below
+      var spread=60;
+      var startX=cx2-(ns.length-1)*spread/2;
+      for(var i=0;i<ns.length;i++){
+        var lbl2=ns[i].replace(/[0-9]/g,'').replace('b','♭').replace('#','♯');
+        noteLayer+='<text x="'+(startX+i*spread)+'" y="'+(ly(1)+SLS*3)+'" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="'+c+'" opacity="0.75">'+lbl2+'</text>';
+      }
+      // Interval labels
+      if(ns.length>=2){
+        var intLabels=chordName.toLowerCase().indexOf('minor')>-1?['m3','P5']:['M3','P5'];
+        if(ns.length>=3){
+          noteLayer+='<line x1="'+(startX)+'" y1="'+(ly(1)+SLS*3.6)+'" x2="'+(startX+spread)+'" y2="'+(ly(1)+SLS*3.6)+'" stroke="'+c+'" stroke-width="1" opacity="0.3"/>';
+          noteLayer+='<text x="'+(startX+spread/2)+'" y="'+(ly(1)+SLS*4.2)+'" text-anchor="middle" font-family="sans-serif" font-size="14" fill="'+c+'" opacity="0.4">'+(intLabels[0]||'')+'</text>';
+          noteLayer+='<line x1="'+(startX)+'" y1="'+(ly(1)+SLS*4.8)+'" x2="'+(startX+spread*2)+'" y2="'+(ly(1)+SLS*4.8)+'" stroke="'+c+'" stroke-width="1" opacity="0.3"/>';
+          noteLayer+='<text x="'+(startX+spread)+'" y="'+(ly(1)+SLS*5.3)+'" text-anchor="middle" font-family="sans-serif" font-size="14" fill="'+c+'" opacity="0.4">'+(intLabels[1]||'')+'</text>';
+        }
+      }
     }
     else if(sub==='note_values'){
-      var types=['whole','half','quarter','eighth'],lbls2=['Whole','Half','Quarter','Eighth'],beats=['4 beats','2 beats','1 beat','½ beat'];
-      if(!title)title='Note values';
+      if(!title)title='Note Values';
+      var types=['whole','half','quarter','eighth','sixteenth'];
+      var lbls2=['Whole','Half','Quarter','Eighth','16th'];
+      var beats=['4 beats','2 beats','1 beat','½ beat','¼ beat'];
       clefLayer+=tclef(0,c);
+      var sp4=Math.floor((SW-80)/types.length);
+      var sx4=SL+80;
       for(var i=0;i<types.length;i++){
-        var x2=SL+60+i*(SW/5);
-        noteLayer+=note('B4',x2,types[i],'treble',c,bg);
-        noteLayer+='<text x="'+x2+'" y="185" text-anchor="middle" font-family="sans-serif" font-size="11" fill="'+c+'" opacity="0.8">'+lbls2[i]+'</text>';
-        noteLayer+='<text x="'+x2+'" y="197" text-anchor="middle" font-family="sans-serif" font-size="10" fill="'+c+'" opacity="0.55">'+beats[i]+'</text>';
+        noteLayer+=note('B4',sx4+i*sp4,types[i],'treble',c,bg);
+        noteLayer+='<text x="'+(sx4+i*sp4)+'" y="'+(ly(1)+SLS*3)+'" text-anchor="middle" font-family="Georgia,serif" font-size="20" fill="'+c+'" opacity="0.85">'+lbls2[i]+'</text>';
+        noteLayer+='<text x="'+(sx4+i*sp4)+'" y="'+(ly(1)+SLS*4.2)+'" text-anchor="middle" font-family="sans-serif" font-size="16" fill="'+c+'" opacity="0.5">'+beats[i]+'</text>';
       }
     }
     else if(sub==='staff_clef'){
-      if(!title)title=clefType==='bass'?'Bass clef':'Treble clef';
+      if(!title)title=clefType==='bass'?'Bass Clef':'Treble Clef';
       if(clefType==='bass'){
         clefLayer+=bclef(0,c);
-        noteLayer+='<line x1="'+(SL+SW-30)+'" y1="'+ly(4)+'" x2="'+(SL+SW+5)+'" y2="'+ly(4)+'" stroke="'+c+'" stroke-dasharray="3,2" stroke-width="1" opacity="0.5"/>';
-        noteLayer+='<text x="'+(SL+SW+10)+'" y="'+(ly(4)+4)+'" font-family="sans-serif" font-size="10" fill="'+c+'" opacity="0.7">F line</text>';
+        // Label the F line
+        noteLayer+='<line x1="'+(SL+SW*0.55)+'" y1="'+ly(4)+'" x2="'+(SL+SW*0.75)+'" y2="'+ly(4)+'" stroke="'+c+'" stroke-dasharray="4,3" stroke-width="1.5" opacity="0.6"/>';
+        noteLayer+='<text x="'+(SL+SW*0.78)+'" y="'+(ly(4)+7)+'" font-family="Georgia,serif" font-size="22" fill="'+c+'" opacity="0.8">F line</text>';
+        noteLayer+='<circle cx="'+(SL+SLS*3)+'" cy="'+ly(4)+'" r="8" fill="none" stroke="'+c+'" stroke-width="2" opacity="0.7"/>';
       } else {
         clefLayer+=tclef(0,c);
-        noteLayer+='<line x1="'+(SL+SW-30)+'" y1="'+ly(2)+'" x2="'+(SL+SW+5)+'" y2="'+ly(2)+'" stroke="'+c+'" stroke-dasharray="3,2" stroke-width="1" opacity="0.5"/>';
-        noteLayer+='<text x="'+(SL+SW+10)+'" y="'+(ly(2)+4)+'" font-family="sans-serif" font-size="10" fill="'+c+'" opacity="0.7">G line</text>';
+        // Label the G line
+        noteLayer+='<line x1="'+(SL+SW*0.4)+'" y1="'+ly(2)+'" x2="'+(SL+SW*0.65)+'" y2="'+ly(2)+'" stroke="'+c+'" stroke-dasharray="4,3" stroke-width="1.5" opacity="0.6"/>';
+        noteLayer+='<text x="'+(SL+SW*0.68)+'" y="'+(ly(2)+7)+'" font-family="Georgia,serif" font-size="22" fill="'+c+'" opacity="0.8">G line</text>';
+        noteLayer+='<circle cx="'+(SL+SLS*2)+'" cy="'+ly(2)+'" r="8" fill="none" stroke="'+c+'" stroke-width="2" opacity="0.7"/>';
       }
     }
     else if(sub==='interval'){
       var ns2=route.notes||['C4','G4'];
-      if(!title)title='Interval: '+(ns2[0]||'')+'–'+(ns2[1]||'');
+      if(!title)title='Interval: '+(ns2[0]||'').replace(/[0-9]/g,'')+'→'+(ns2[1]||'').replace(/[0-9]/g,'');
       clefLayer+=tclef(0,c);
-      noteLayer+=note(ns2[0],W*0.38,'half','treble',c,bg);
-      noteLayer+=note(ns2[1],W*0.55,'half','treble',c,bg);
-      if(route.label)noteLayer+='<text x="'+(W*0.465)+'" y="195" text-anchor="middle" font-family="sans-serif" font-size="11" fill="'+c+'" opacity="0.6">'+route.label+'</text>';
+      var x1i=W*0.36,x2i=W*0.56;
+      noteLayer+=note(ns2[0],x1i,'half','treble',c,bg);
+      noteLayer+=note(ns2[1],x2i,'half','treble',c,bg);
+      // Arrow between them
+      noteLayer+='<line x1="'+(x1i+20)+'" y1="'+(ly(3)-20)+'" x2="'+(x2i-20)+'" y2="'+(ly(3)-20)+'" stroke="'+c+'" stroke-width="2" opacity="0.5" marker-end="url(#arr)"/>';
+      if(route.label)noteLayer+='<text x="'+((x1i+x2i)/2)+'" y="'+(ly(3)-35)+'" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="'+c+'" opacity="0.8">'+route.label+'</text>';
+      // Note name labels
+      noteLayer+='<text x="'+x1i+'" y="'+(ly(1)+SLS*3)+'" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="'+c+'" opacity="0.7">'+(ns2[0]||'').replace(/[0-9]/g,'')+'</text>';
+      noteLayer+='<text x="'+x2i+'" y="'+(ly(1)+SLS*3)+'" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="'+c+'" opacity="0.7">'+(ns2[1]||'').replace(/[0-9]/g,'')+'</text>';
     }
     else if(sub==='key_signature'){
-      if(!title)title=(route.key||'C major')+' key signature';
+      if(!title)title=(route.key||'C major')+' Key Signature';
       clefLayer+=clefType==='bass'?bclef(0,c):tclef(0,c);
-      noteLayer+='<text x="'+(W/2)+'" y="'+(H/2+20)+'" text-anchor="middle" font-family="serif" font-size="48" fill="'+c+'" opacity="0.9">'+(route.label||title)+'</text>';
+      // Draw the key signature accidentals
+      var ks=route.key||'C major';
+      var sharps=['F#','C#','G#','D#','A#','E#','B#'];
+      var flats=['Bb','Eb','Ab','Db','Gb','Cb','Fb'];
+      var numSharps={'G major':1,'D major':2,'A major':3,'E major':4,'B major':5,'F# major':6,'C# major':7,'E minor':1,'B minor':2,'F# minor':3,'C# minor':4,'G# minor':5,'D# minor':6,'A# minor':7};
+      var numFlats={'F major':1,'Bb major':2,'Eb major':3,'Ab major':4,'Db major':5,'Gb major':6,'Cb major':7,'D minor':1,'G minor':2,'C minor':3,'F minor':4,'Bb minor':5,'Eb minor':6,'Ab minor':7};
+      var ksLower=ks.toLowerCase();
+      var accX=SL+SLS*5;
+      if(numSharps[ks]){
+        var n=numSharps[ks];
+        var sharpYT={'F#':ly(5),'C#':sy(3),'G#':ly(5)-SLS,'D#':ly(4),'A#':sy(2),'E#':ly(3),'B#':ly(3)+SLS};
+        for(var i=0;i<n;i++){noteLayer+=sharp(accX+i*SLS*1.4,sharpYT[sharps[i]],c);}
+        noteLayer+='<text x="'+W/2+'" y="'+(ly(1)+SLS*3.5)+'" text-anchor="middle" font-family="Georgia,serif" font-size="20" fill="'+c+'" opacity="0.6">'+n+' sharp'+(n>1?'s':'')+': '+sharps.slice(0,n).map(function(s){return s.replace('#','♯');}).join(', ')+'</text>';
+      } else if(numFlats[ks]){
+        var n=numFlats[ks];
+        var flatYT={'Bb':ly(3),'Eb':ly(5)-SLS,'Ab':sy(2),'Db':ly(4),'Gb':ly(2),'Cb':sy(3),'Fb':sy(1)};
+        for(var i=0;i<n;i++){noteLayer+=flat(accX+i*SLS*1.4,flatYT[flats[i]],c);}
+        noteLayer+='<text x="'+W/2+'" y="'+(ly(1)+SLS*3.5)+'" text-anchor="middle" font-family="Georgia,serif" font-size="20" fill="'+c+'" opacity="0.6">'+n+' flat'+(n>1?'s':'')+': '+flats.slice(0,n).map(function(f){return f.replace('b','♭');}).join(', ')+'</text>';
+      } else {
+        noteLayer+='<text x="'+W/2+'" y="'+ly(3)+'" text-anchor="middle" font-family="Georgia,serif" font-size="28" fill="'+c+'" opacity="0.7">No sharps or flats</text>';
+      }
     }
     else if(sub==='time_signature'){
-      var parts=(route.key||'4/4').split('/');
+      var ts=route.key||'4/4';
+      var parts=ts.split('/');
       var top=parts[0]||'4',bot=parts[1]||'4';
-      if(!title)title=(route.key||'4/4')+' time signature';
+      if(!title)title=ts+' Time Signature';
       clefLayer+=tclef(0,c);
-      noteLayer+='<text x="'+(SL+80)+'" y="'+(ly(4)+8)+'" text-anchor="middle" font-family="serif" font-size="'+(SLS*4)+'" fill="'+c+'">'+top+'</text>';
-      noteLayer+='<text x="'+(SL+80)+'" y="'+(ly(2)+8)+'" text-anchor="middle" font-family="serif" font-size="'+(SLS*4)+'" fill="'+c+'">'+bot+'</text>';
+      var tsX=SL+SLS*5;
+      noteLayer+='<text x="'+tsX+'" y="'+(ly(4)+8)+'" text-anchor="middle" font-family="Georgia,serif" font-size="'+(SLS*2.8)+'" fill="'+c+'">'+top+'</text>';
+      noteLayer+='<text x="'+tsX+'" y="'+(ly(2)+8)+'" text-anchor="middle" font-family="Georgia,serif" font-size="'+(SLS*2.8)+'" fill="'+c+'">'+bot+'</text>';
+      // Explanation
+      var tsDesc=top+' '+({2:'half-note',4:'quarter-note',8:'eighth-note',16:'sixteenth-note'}[bot]||'beat')+'s per bar';
+      noteLayer+='<text x="'+W/2+'" y="'+(ly(1)+SLS*3.5)+'" text-anchor="middle" font-family="Georgia,serif" font-size="20" fill="'+c+'" opacity="0.6">'+tsDesc+'</text>';
     }
     else if(sub==='note_names'){
-      // Show labeled notes A B C D E F G on staff
       var noteNames=route.notes||['C4','D4','E4','F4','G4','A4','B4'];
-      if(!title)title='Note names';
+      if(!title)title='Note Names';
       clefLayer+=tclef(0,c);
-      var sp2=Math.floor((SW-60)/noteNames.length),sx2=SL+60;
+      var sp5=Math.floor((SW-80)/noteNames.length),sx5=SL+80;
       for(var i=0;i<noteNames.length;i++){
-        noteLayer+=note(noteNames[i],sx2+i*sp2,'quarter','treble',c,bg);
-        var lbl2=noteNames[i].replace(/[0-9]/g,'').replace('#','♯').replace('b','♭');
-        noteLayer+='<text x="'+(sx2+i*sp2)+'" y="195" text-anchor="middle" font-family="sans-serif" font-size="10" fill="'+c+'" opacity="0.8">'+lbl2+'</text>';
+        noteLayer+=note(noteNames[i],sx5+i*sp5,'quarter','treble',c,bg);
+        var lbl5=noteNames[i].replace(/[0-9]/g,'').replace('b','♭').replace('#','♯');
+        noteLayer+='<text x="'+(sx5+i*sp5)+'" y="'+(ly(1)+SLS*3)+'" text-anchor="middle" font-family="Georgia,serif" font-size="24" fill="'+c+'" font-weight="bold" opacity="0.85">'+lbl5+'</text>';
       }
     }
     else if(sub==='rhythm'){
-      var rhythmNotes=route.notes||['quarter','quarter','eighth','eighth','quarter'];
-      if(!title)title='Rhythm pattern';
+      var rhythmTypes=route.notes||['quarter','quarter','eighth','eighth','quarter'];
+      if(!title)title='Rhythm Pattern';
       clefLayer+=tclef(0,c);
-      var sp3=Math.floor((SW-60)/rhythmNotes.length),sx3=SL+60;
-      for(var i=0;i<rhythmNotes.length;i++)noteLayer+=note('B4',sx3+i*sp3,rhythmNotes[i],'treble',c,bg);
+      // Add time sig
+      noteLayer+='<text x="'+(SL+SLS*4)+'" y="'+(ly(4)+8)+'" text-anchor="middle" font-family="Georgia,serif" font-size="'+(SLS*2.2)+'" fill="'+c+'">4</text>';
+      noteLayer+='<text x="'+(SL+SLS*4)+'" y="'+(ly(2)+8)+'" text-anchor="middle" font-family="Georgia,serif" font-size="'+(SLS*2.2)+'" fill="'+c+'">4</text>';
+      var sp6=Math.floor((SW-SLS*6)/rhythmTypes.length),sx6=SL+SLS*6;
+      for(var i=0;i<rhythmTypes.length;i++)noteLayer+=note('B4',sx6+i*sp6,rhythmTypes[i],'treble',c,bg);
     }
     else {
       return null;
     }
 
-    var titleSvg=title?'<text x="'+W/2+'" y="22" text-anchor="middle" font-family="sans-serif" font-size="14" fill="'+c+'" font-weight="500">'+title+'</text>':'';
-    return hdr+titleSvg+clefLayer+noteLayer+staff(c)+ftr;
+    return hdr+titleSvg(title)+clefLayer+noteLayer+staff(c)+ftr;
   }
 
   function toBlob(s){return new Blob([s],{type:'image/svg+xml'});}
@@ -1266,8 +1358,11 @@ var NE=(function(){
       var img=new Image();
       img.onload=function(){
         var canvas=document.createElement('canvas');
-        canvas.width=1280;canvas.height=Math.round(230*1280/720);
-        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        canvas.width=1280;canvas.height=720;
+        var ctx=canvas.getContext('2d');
+        ctx.fillStyle='#1a2a4a';
+        ctx.fillRect(0,0,1280,720);
+        ctx.drawImage(img,0,0,1280,720);
         canvas.toBlob(function(blob){resolve(blob);},'image/png');
       };
       img.onerror=function(){reject(new Error('SVG→PNG failed'));};
@@ -1279,58 +1374,55 @@ var NE=(function(){
 
 
 // ============================================================
-// SMART IMAGE ROUTER — notation engine or FLUX
+// SMART IMAGE ROUTER — batch all scenes in ONE Groq call
 // ============================================================
-// ============================================================
-// SMART IMAGE ROUTER — Groq decides notation vs Hugging Face
-// ============================================================
-async function routeScene(sceneText, videoTopic, priorContext, styleStr) {
+async function batchRouteScenes(scenes, videoTopic, styleStr) {
+  // Send ALL scenes to Groq at once — returns array of routing decisions
+  var sceneList = scenes.map(function(s,i){ return (i+1)+'. '+s.text; }).join('\n');
+
   var routePrompt =
-    'You are the image router for a music theory YouTube channel called MusicIsEasy.\n' +
-    'VIDEO TOPIC: "' + videoTopic + '"\n' +
-    'PRIOR CONTEXT (what has already been shown): ' + (priorContext||'none') + '\n' +
-    'CURRENT SCENE: "' + sceneText + '"\n\n' +
-    'Decide whether to render with NOTATION ENGINE or AI IMAGE GENERATOR.\n\n' +
-    'NOTATION ENGINE handles: scales, chords, note values, staff/clef diagrams, intervals, key signatures, time signatures, note names on staff, rhythm patterns.\n' +
-    'AI IMAGE GENERATOR handles: instruments, historical context, abstract concepts, anything visual/narrative not a music theory diagram.\n\n' +
-    'STYLE RULES for AI images (STRICT — always follow these):\n' +
-    '- Clean minimal flat illustration style, NO photorealism, NO real humans or faces\n' +
-    '- Dark navy blue background (#1a2a4a), gold/amber accents\n' +
-    '- Simple geometric shapes, icons, or stylized objects only\n' +
-    '- If an instrument is needed: show a simple stylized icon/illustration of it, not a photo\n' +
-    '- Must feel consistent with other frames in this video\n' +
-    '- Max 40 words in prompt\n\n' +
-    'Respond ONLY with valid JSON:\n' +
-    'Notation: {"type":"notation","subtype":"scale|chord|note_values|staff_clef|interval|key_signature|time_signature|note_names|rhythm","key":"e.g. C major","label":"display title","clef":"treble|bass","notes":["C4","D4",...]}\n' +
-    'Image: {"type":"flux","prompt":"specific description. Clean minimal flat icon illustration, NO humans NO faces, dark navy background, gold accents, music theory educational style."}\n' +
-    'Only the JSON object, nothing else.';
+    'You are the image director for a music theory YouTube channel called MusicIsEasy.\n' +
+    'VIDEO TOPIC: "' + videoTopic + '"\n\n' +
+    'For each scene, decide the best image type. You have two options:\n\n' +
+    'OPTION A — NOTATION (use when scene is about a specific music theory concept that can be drawn on a staff):\n' +
+    '{"type":"notation","subtype":"scale|chord|note_values|staff_clef|interval|key_signature|time_signature|note_names|rhythm","key":"e.g. C major","label":"Title to show","clef":"treble","notes":["C4","D4","E4"]}\n\n' +
+    'OPTION B — ILLUSTRATION (use for anything visual, conceptual, historical, or about instruments):\n' +
+    '{"type":"flux","prompt":"[40 words max. Specific flat icon illustration. NO humans NO faces NO photorealism. Dark navy background #1a2a4a, gold accents. Simple clean shapes. Directly illustrates THIS scene.]"}\n\n' +
+    'RULES:\n' +
+    '- notation: scales use "scale", named chords use "chord", A B C D E F G letters → "note_names", time signatures → "time_signature", note durations → "note_values"\n' +
+    '- flux: physical objects (piano, guitar), history, emotions, abstract concepts\n' +
+    '- flux prompts: be SPECIFIC to what is said. "7 note names A through G floating on music staff, flat icon style" not "music concept"\n' +
+    '- Keep images consistent: same navy+gold style throughout\n' +
+    '- notes array: always use octave notation e.g. C4 D4 E4 (not just C D E)\n\n' +
+    'SCENES:\n' + sceneList + '\n\n' +
+    'Output ONLY a valid JSON array with one object per scene, in order. No explanation, no markdown:\n' +
+    '[{"type":"..."},{"type":"..."},...]';
 
   try {
-    var raw = await callGemini(routePrompt, 500);
-    raw = raw.replace(/```json|```/g, '').trim();
-    var match = raw.match(/\{[\s\S]*\}/);
-    if (match) raw = match[0];
-    return JSON.parse(raw);
+    var raw = await callGemini(routePrompt, 3000);
+    raw = raw.replace(/```json|```/g,'').trim();
+    var match = raw.match(/\[[\s\S]*\]/);
+    if(match) raw = match[0];
+    var routes = JSON.parse(raw);
+    if(!Array.isArray(routes)) throw new Error('not array');
+    // Pad if needed
+    while(routes.length < scenes.length) routes.push({type:'flux',prompt:'Music theory educational flat icon illustration, dark navy background, gold accents, simple geometric shapes.'});
+    return routes;
   } catch(e) {
-    return { type: 'flux', prompt: 'Simple flat icon illustration of music theory concept: ' + sceneText.slice(0,50) + '. NO humans, dark navy background, gold accents, minimal educational style.' };
+    // Fallback: all flux with generic prompts
+    return scenes.map(function(s){
+      return {type:'flux', prompt:'Music theory educational flat icon illustration about: '+s.text.slice(0,50)+'. Dark navy background, gold accents, NO humans, simple geometric shapes.'};
+    });
   }
 }
 
-async function generateImageForScene(sceneText, prompt, seed, videoTopic, priorScenes) {
+async function generateImageForScene(sceneText, route, seed) {
   var artKey = document.getElementById('artStyle') ? document.getElementById('artStyle').value : 'navy';
   var colorMap = { navy:'#e8c96a', chalkboard:'#e8c96a', white:'#e8644a', flat:'#e8c96a', notebook:'#f5c842' };
   var bgMap   = { navy:'#1a2a4a', chalkboard:'#0d1826', white:'#ffffff', flat:'#1a2a4a', notebook:'#fdf6e3' };
   var style = { color: colorMap[artKey]||'#e8c96a', bg: bgMap[artKey]||'#1a2a4a' };
-  var styleStr = artKey + ' music theory educational';
 
-  // Build prior context summary (last 3 scenes)
-  var priorContext = priorScenes && priorScenes.length > 0
-    ? priorScenes.slice(-3).map(function(s){ return s.text; }).join(' | ')
-    : 'none';
-
-  var route = await routeScene(sceneText, videoTopic||'music theory', priorContext, styleStr);
-
-  if (route.type === 'notation') {
+  if (route && route.type === 'notation') {
     var svgStr = NE.generateFromRoute(route, style);
     if (svgStr) {
       try {
@@ -1342,8 +1434,8 @@ async function generateImageForScene(sceneText, prompt, seed, videoTopic, priorS
     }
   }
 
-  // Use Hugging Face with routed prompt
-  var fluxPrompt = route.prompt || prompt;
+  // Use Hugging Face
+  var fluxPrompt = (route && route.prompt) ? route.prompt : 'Music theory educational flat icon illustration. Dark navy background, gold accents, simple geometric shapes, no humans.';
   var fluxBlob = await generateImage(fluxPrompt, seed);
   return { blob: fluxBlob, source: 'flux' };
 }
@@ -1546,19 +1638,15 @@ async function produceVideo(){
     scenesRaw=scenesRaw.replace(/```json|```/g,'').trim();
     var scenesData=JSON.parse(scenesRaw);
     if(!Array.isArray(scenesData)||scenesData.length===0)throw new Error('Could not parse scenes from transcription.');
-    currentScenes=scenesData.map(function(s,i){return{text:s.text,prompt:'',imgBlob:null,approved:false};});
+    currentScenes=scenesData.map(function(s,i){return{text:s.text,prompt:'',route:null,imgBlob:null,approved:false};});
 
-    // ---- STEP 3: GENERATE IMAGE PROMPTS ----
-    setProgress(50,'Step 2b — Generating image prompts for '+currentScenes.length+' scenes...');
-
-    var promptsText=currentScenes.map(function(s,i){return'Scene '+(i+1)+': '+s.text;}).join('\n');
-    var promptInstr='You are writing image generation prompts for a music theory YouTube channel called "'+channelName+'". Each prompt goes directly to an AI image generator (Hugging Face FLUX).\n\nStyle for ALL images: '+styleStr+'\n\nFor each scene write ONE highly specific image prompt (max 40 words) that:\n1. DIRECTLY illustrates EXACTLY what is being spoken about — be specific, not generic\n2. If a specific instrument is mentioned → show that instrument up close\n3. If a historical period or person is mentioned → show that era/person\n4. If an emotion or feeling is described → show a musician expressing that feeling\n5. NEVER use generic "floating musical notes" or abstract swirls\n6. End with: "clean minimal educational illustration, dark navy background, gold accents"\n7. No text or labels in the image\n\nIMPORTANT: Many scenes will be handled by a notation engine (scales, chords, note values, staff diagrams) — for those scenes still write a prompt as backup in case the notation engine fails.\n\nOutput ONLY numbered prompts, nothing else:\n1. [prompt]\n2. [prompt]\n\nScenes:\n'+promptsText;
-
-    var promptsRaw=await callGemini(promptInstr,5000);
-    var promptLines=promptsRaw.split('\n').filter(function(l){return /^\d+\./.test(l.trim());});
-    var prompts=promptLines.map(function(l){return l.replace(/^\d+\.\s*/,'').trim();});
-    while(prompts.length<currentScenes.length)prompts.push('16:9 widescreen hand-drawn music theory educational sketch: simple musical concept illustration. '+styleStr);
-    currentScenes.forEach(function(s,i){s.prompt=prompts[i]||'';});
+    // ---- STEP 3: BATCH ROUTE ALL SCENES (one API call) ----
+    setProgress(50,'Step 2b — Planning images for all '+currentScenes.length+' scenes...');
+    var videoTopic=currentScript&&currentScript.topic?currentScript.topic:(document.getElementById('topic').value.trim()||'music theory');
+    var artKey=document.getElementById('artStyle').value;
+    var styleStr=getStyleStr(artKey,document.getElementById('colorScheme').value,document.getElementById('styleNotes').value.trim());
+    var sceneRoutes = await batchRouteScenes(currentScenes, videoTopic, styleStr);
+    currentScenes.forEach(function(s,i){ s.route=sceneRoutes[i]; s.prompt=(sceneRoutes[i]&&sceneRoutes[i].prompt)||''; });
 
     // ---- RENDER REVIEW GRID (before images generate) ----
     setProgress(60,'Step 3 of 3 — Generating '+currentScenes.length+' images (you can leave this running)...');
@@ -1567,29 +1655,19 @@ async function produceVideo(){
     // ---- STEP 4: GENERATE IMAGES ONE BY ONE ----
     var successCount=0;
     var failCount=0;
-    var videoTopic=currentScript&&currentScript.topic?currentScript.topic:(document.getElementById('topic').value.trim()||'music theory');
 
     for(var i=0;i<currentScenes.length;i++){
       var pct=60+Math.floor((i/currentScenes.length)*35);
       setProgress(pct,'Generating image '+(i+1)+' of '+currentScenes.length+'...');
       updateCardStatus(i,'generating');
 
-      // Build prior scenes context for continuity
-      var priorScenes=currentScenes.slice(0,i);
-
-      var attemptImage=async function(sceneIdx){
+      var attemptImage=async function(idx){
         var seed=Math.floor(Math.random()*2147483647);
-        return await generateImageForScene(
-          currentScenes[sceneIdx].text,
-          currentScenes[sceneIdx].prompt,
-          seed,
-          videoTopic,
-          currentScenes.slice(0,sceneIdx)
-        );
+        return await generateImageForScene(currentScenes[idx].text, currentScenes[idx].route, seed);
       };
 
       try{
-        if(i>0)await sleep(1200);
+        if(i>0) await sleep(800);
         var result=await attemptImage(i);
         currentScenes[i].imgBlob=result.blob;
         imageBlobs[i]=result.blob;
@@ -1598,39 +1676,32 @@ async function produceVideo(){
       }catch(err){
         var retried=false;
 
-        // Model loading — wait and retry
         if(err.message==='model_loading'){
           updateCardStatus(i,'waiting');
           await sleep(25000);
           try{
             var r2=await attemptImage(i);
-            currentScenes[i].imgBlob=r2.blob;
-            imageBlobs[i]=r2.blob;
+            currentScenes[i].imgBlob=r2.blob; imageBlobs[i]=r2.blob;
             updateCardImage(i,URL.createObjectURL(r2.blob),r2.source);
-            successCount++;
-            retried=true;
-          }catch(e2){ /* fall through */ }
+            successCount++; retried=true;
+          }catch(e2){}
         }
 
-        // Rate limit or timeout — shorter wait then retry
-        if(!retried && (err.message.indexOf('429')>-1||err.message.indexOf('timeout')>-1||err.message.indexOf('503')>-1)){
+        if(!retried&&(err.message.indexOf('429')>-1||err.message.indexOf('503')>-1||err.message.indexOf('timeout')>-1)){
           updateCardStatus(i,'waiting');
           await sleep(8000);
           try{
             var r3=await attemptImage(i);
-            currentScenes[i].imgBlob=r3.blob;
-            imageBlobs[i]=r3.blob;
+            currentScenes[i].imgBlob=r3.blob; imageBlobs[i]=r3.blob;
             updateCardImage(i,URL.createObjectURL(r3.blob),r3.source);
-            successCount++;
-            retried=true;
-          }catch(e3){ /* fall through */ }
+            successCount++; retried=true;
+          }catch(e3){}
         }
 
         if(!retried){
           updateCardStatus(i,'failed');
           failCount++;
-          // Don't stop — keep going with next scene
-          await sleep(2000);
+          await sleep(1000);
         }
       }
     }
@@ -1726,7 +1797,8 @@ async function regenImage(i){
   if(ph){ph.style.display='flex';ph.innerHTML='<svg class="pulsing spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span style="font-size:10px;color:var(--text3);">Regenerating...</span>';}
   if(img)img.style.display='none';
   try{
-    var result=await generateImageForScene(currentScenes[i].text, currentScenes[i].prompt, Math.floor(Math.random()*2147483647));
+    var seed=Math.floor(Math.random()*2147483647);
+    var result=await generateImageForScene(currentScenes[i].text, currentScenes[i].route, seed);
     currentScenes[i].imgBlob=result.blob;
     imageBlobs[i]=result.blob;
     updateCardImage(i,URL.createObjectURL(result.blob),result.source);
