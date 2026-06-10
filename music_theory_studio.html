@@ -238,6 +238,7 @@ RESTS (fixed positions always)
   ::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px;}
   @media(max-width:600px){.grid2,.grid3,.workflow-steps{grid-template-columns:1fr;}.main{padding:20px 16px 60px;}.header,.tabs{padding-left:16px;padding-right:16px;}}
 </style>
+<script src="https://js.puter.com/v2/"></script>
 </head>
 <body>
 
@@ -295,12 +296,12 @@ RESTS (fixed positions always)
       </div>
       <div class="grid2" style="margin-top:14px;">
         <div class="field">
-          <label for="hfKey">Image generation — Pollinations.ai (no API key needed)</label>
+          <label for="hfKey">Image generation — Puter.js (free, unlimited, no key needed)</label>
           <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
             <button onclick="testHFConnection()" style="font-size:11px;padding:4px 12px;background:var(--bg3);border:0.5px solid var(--border);color:var(--text2);border-radius:6px;cursor:pointer;">🔌 Test Connection</button>
             <span id="hfTestResult" style="font-size:11px;color:var(--text3);"></span>
           </div>
-          <p style="font-size:11px;color:var(--text3);margin-top:4px;">Free AI image generation via <a href="https://pollinations.ai" target="_blank" style="color:var(--gold);text-decoration:none;">pollinations.ai</a> — no sign-up required</p>
+          <p style="font-size:11px;color:var(--text3);margin-top:4px;">Free unlimited AI image generation via <a href="https://puter.com" target="_blank" style="color:var(--gold);text-decoration:none;">Puter.js</a> — no sign-up required</p>
         </div>
       </div>
     </div>
@@ -1445,49 +1446,48 @@ async function generateImageForScene(sceneText, route, seed) {
 // ============================================================
 async function testHFConnection(){
   var el=document.getElementById('hfTestResult');
-  el.style.color='var(--text3)';el.textContent='Testing image API...';
+  el.style.color='var(--text3)';el.textContent='Testing...';
   try{
-    // Test with a tiny image
-    var r=await fetch('https://image.pollinations.ai/prompt/test?width=64&height=64&model=flux&nologo=true',{method:'GET'});
-    if(r.ok){
-      el.style.color='var(--green)';el.textContent='✓ Image API connected and ready!';
-    } else {
-      el.style.color='var(--gold)';el.textContent='⚠ API responded with status '+r.status+' — may still work for full images.';
+    if(typeof puter==='undefined'){
+      el.style.color='var(--red)';el.textContent='✕ Puter.js not loaded — check internet connection.';return;
     }
+    el.style.color='var(--green)';el.textContent='✓ Image API ready (Puter.js loaded)!';
   }catch(err){
-    var msg=err.message||String(err);
-    el.style.color='var(--red)';el.textContent='✕ '+msg;
+    el.style.color='var(--red)';el.textContent='✕ '+err.message;
   }
 }
 
 
 async function generateImage(prompt, seed){
-  // Pollinations.ai — free, no API key, no CORS issues, works from any browser
-  // Using image.pollinations.ai/prompt/ endpoint with flux model (free tier)
-  var uniqueSeed = seed !== undefined ? seed : Math.floor(Math.random()*2147483647);
-  var encoded = encodeURIComponent(prompt);
-  var url = 'https://image.pollinations.ai/prompt/'+encoded
-    +'?width=1280&height=720&model=flux&seed='+uniqueSeed+'&nologo=true&enhance=false';
+  // Puter.js — free, unlimited, no API key, no CORS issues
+  // Uses user-pays model so no limits on our end
+  return new Promise(function(resolve, reject){
+    puter.ai.txt2img(prompt, { model: 'flux-schnell' })
+      .then(function(imgElement){
+        // imgElement is an <img> DOM element — convert src to blob
+        var src = imgElement.src;
+        fetch(src)
+          .then(function(r){ return r.blob(); })
+          .then(function(blob){ resolve(blob); })
+          .catch(function(){ resolve(srcToBlob(src)); });
+      })
+      .catch(function(err){
+        var msg = err && err.message ? err.message : String(err);
+        if(msg.indexOf('402')>-1) reject(new Error('Puter quota exceeded — try again shortly.'));
+        else reject(new Error('Image generation failed: '+msg));
+      });
+  });
+}
 
-  var r;
-  try {
-    r = await fetch(url, { method:'GET' });
-  } catch(fetchErr) {
-    throw new Error('Network error reaching image API: '+fetchErr.message);
+// Helper: convert img src (data URL or object URL) to Blob
+async function srcToBlob(src){
+  if(src.startsWith('data:')){
+    var arr=src.split(','), mime=arr[0].match(/:(.*?);/)[1];
+    var bstr=atob(arr[1]), n=bstr.length, u8arr=new Uint8Array(n);
+    while(n--) u8arr[n]=bstr.charCodeAt(n);
+    return new Blob([u8arr],{type:mime});
   }
-
-  if(!r.ok){
-    if(r.status===402) throw new Error('Image API quota exceeded (402) — Pollinations free tier limit hit. Wait a moment and retry.');
-    if(r.status===429) throw new Error('Rate limit (429) — too many requests. Will retry shortly.');
-    if(r.status===503) throw new Error('model_loading');
-    throw new Error('Image API error '+r.status+' — try regenerating this scene.');
-  }
-
-  var ct = r.headers.get('content-type')||'';
-  if(!ct.startsWith('image/')){
-    throw new Error('Unexpected response type: '+ct);
-  }
-
+  var r=await fetch(src);
   return await r.blob();
 }
 
