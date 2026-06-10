@@ -1380,32 +1380,48 @@ var NE=(function(){
 // SMART IMAGE ROUTER — batch all scenes in ONE Groq call
 // ============================================================
 async function batchRouteScenes(scenes, videoTopic, styleStr) {
-  var sceneList = scenes.map(function(s,i){ return (i+1)+'. '+s.text; }).join('\n');
+  // Build scene list with prior context inline so model knows what came before
+  var sceneList = scenes.map(function(s,i){
+    var prior = i>0 ? ' [prior: "'+scenes[i-1].text.slice(0,60)+'"]' : '';
+    return (i+1)+'.'+prior+' "'+s.text+'"';
+  }).join('\n');
 
   var routePrompt =
-    'Music theory YouTube video: "'+videoTopic+'".\n' +
-    'Each scene is a sentence from the voiceover. For each scene, pick the best image.\n\n' +
-    'NOTATION (draw on a music staff): {"type":"notation","subtype":"scale|chord|note_values|staff_clef|interval|key_signature|time_signature|note_names|rhythm","key":"C major","label":"C Major Scale","clef":"treble","notes":["C4","D4","E4","F4","G4","A4","B4","C5"]}\n' +
-    'ILLUSTRATION (everything else): {"type":"flux","prompt":"flat icon, navy bg #1a2a4a, gold accents, NO humans, specific to scene"}\n\n' +
-    'Use NOTATION for: named scales, chords, note names A-G, note durations, intervals, key/time signatures.\n' +
-    'Use ILLUSTRATION for: instruments, history, emotions, abstract ideas, introductions, conclusions.\n' +
-    'Make flux prompts specific — "treble clef symbol glowing gold on navy background" not "music concept".\n' +
-    'notes array: octave notation only e.g. C4 D4 E4.\n\n' +
-    'SCENES:\n'+sceneList+'\n\n' +
-    'Reply with a JSON array only, one object per scene:\n[{...},{...}]';
+    'You are directing images for a music theory YouTube video: "'+videoTopic+'".\n' +
+    'For each scene, choose an image that DIRECTLY illustrates the EXACT words being spoken.\n\n' +
+    '## PRIORITY RULES (in order):\n' +
+    '1. The CURRENT scene text is the #1 priority — the image must match what is being said RIGHT NOW\n' +
+    '2. Prior scene context is secondary — only use it to avoid jarring jumps, never override rule 1\n' +
+    '3. ACCURACY beats complexity — a simple correct image beats a detailed wrong one\n' +
+    '4. If the scene mentions specific items (letters A-G, specific notes, a chord name) — show EXACTLY those items, nothing more, nothing less\n\n' +
+    '## TWO IMAGE TYPES:\n' +
+    'NOTATION — music staff diagram. Use for: named scales, specific chords, note names, note values, intervals, key/time signatures.\n' +
+    '{"type":"notation","subtype":"scale|chord|note_values|staff_clef|interval|key_signature|time_signature|note_names|rhythm","key":"C major","label":"C Major Scale","clef":"treble","notes":["C4","D4","E4","F4","G4","A4","B4","C5"]}\n\n' +
+    'ILLUSTRATION — AI image. Use for everything else.\n' +
+    '{"type":"flux","prompt":"[description]"}\n' +
+    'Illustration prompt rules:\n' +
+    '- Describe ONLY what is literally being said in the scene\n' +
+    '- If scene says "the musical alphabet has 7 letters A B C D E F G" → show exactly those 7 letters, large and clear\n' +
+    '- If scene mentions a piano → show a piano, not a generic music scene\n' +
+    '- Keep it simple: one clear subject, flat icon style, navy background #1a2a4a, gold accents\n' +
+    '- NO humans, NO faces, NO photorealism\n' +
+    '- Max 15 words in the prompt — simpler = more accurate\n\n' +
+    'notes array: octave notation e.g. C4 D4 E4.\n\n' +
+    'SCENES (format: N. [prior context] "current scene"):\n'+sceneList+'\n\n' +
+    'Reply with a JSON array only, one object per scene, no markdown:\n[{...},{...}]';
 
   try {
-    var raw = await callGemini(routePrompt, 2000); // 70b for image quality decisions
+    var raw = await callGemini(routePrompt, 2000);
     raw = raw.replace(/```json|```/g,'').trim();
     var match = raw.match(/\[[\s\S]*\]/);
     if(match) raw = match[0];
     var routes = JSON.parse(raw);
     if(!Array.isArray(routes)) throw new Error('not array');
-    while(routes.length < scenes.length) routes.push({type:'flux',prompt:'Music theory concept flat icon illustration, navy background, gold accents, simple shapes.'});
+    while(routes.length < scenes.length) routes.push({type:'flux',prompt:'Music theory flat icon, navy background, gold accents, simple shapes.'});
     return routes;
   } catch(e) {
     return scenes.map(function(s){
-      return {type:'flux', prompt:'Music theory flat icon: '+s.text.slice(0,40)+'. Navy bg, gold accents, no humans.'};
+      return {type:'flux', prompt:'Music theory: '+s.text.slice(0,35)+'. Flat icon, navy bg, gold accents.'};
     });
   }
 }
