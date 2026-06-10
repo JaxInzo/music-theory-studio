@@ -540,9 +540,11 @@ async function buildVideo(){
   var padEnd=parseFloat(document.getElementById('padEnd').value);
   showSubtitles=document.getElementById('subtitleToggle').checked;
   var fps=30;
+  var buildStep='init';
 
   try{
     // Load and process audio
+    buildStep='audio-load';
     setProgress(5,'Loading audio...');
     var audioURL=URL.createObjectURL(state.audio);
     var audioCtx=new (window.AudioContext||window.webkitAudioContext)();
@@ -638,11 +640,13 @@ async function buildVideo(){
     var totalDuration=audioBuffer.duration+padStart+padEnd;
 
     // Load all images
-    setProgress(15,'Loading images...');
-    var imgEls=await Promise.all(state.images.map(function(f){
-      return new Promise(function(resolve){
+    buildStep='image-load';
+    setProgress(15,'Loading '+state.images.length+' images...');
+    var imgEls=await Promise.all(state.images.map(function(f,idx){
+      return new Promise(function(resolve,reject){
         var img=new Image();
         img.onload=function(){resolve(img);};
+        img.onerror=function(){reject(new Error('Failed to load image '+(idx+1)+' ('+f.name+') — is it a valid PNG/JPG?'));};
         img.src=URL.createObjectURL(f);
       });
     }));
@@ -687,6 +691,7 @@ async function buildVideo(){
     var ctx=canvas.getContext('2d');
 
     // MediaRecorder setup
+    buildStep='encode';
     setProgress(25,'Setting up video encoder...');
     var stream=canvas.captureStream(fps);
 
@@ -725,6 +730,7 @@ async function buildVideo(){
       function drawFrame(){
         var elapsed=(performance.now()-startTime)/1000;
         var progress=Math.min(elapsed/totalDuration,1);
+        buildStep='render';
         setProgress(25+Math.floor(progress*65),'Rendering frames... '+Math.floor(progress*100)+'%');
 
         // Find current image
@@ -886,7 +892,14 @@ async function buildVideo(){
     prog.className='progress-wrap';
 
   }catch(err){
-    setStatus('buildStatus','Error: '+err.message+'. Try a smaller resolution or fewer images.','error');
+    var msg=err.message||'Unknown error';
+    var hint='';
+    if(buildStep==='audio-load') hint=' — Check the audio file is a valid MP3/WAV/M4A.';
+    else if(buildStep==='audio-process') hint=' — Audio processing failed. Try a shorter file or different format.';
+    else if(buildStep==='image-load') hint=' — Check all images are valid PNG or JPG files.';
+    else if(buildStep==='encode'||buildStep==='render') hint=' — Try a lower resolution (1280×720) or fewer images.';
+    else if(msg.indexOf('MediaRecorder')>-1||msg.indexOf('codec')>-1) hint=' — Your browser may not support WebM encoding. Try Chrome.';
+    setStatus('buildStatus','Error at step "'+buildStep+'": '+msg+hint,'error');
     prog.className='progress-wrap';
   }
 
