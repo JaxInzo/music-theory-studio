@@ -1448,7 +1448,7 @@ async function testHFConnection(){
   el.style.color='var(--text3)';el.textContent='Testing image API...';
   try{
     // Test with a tiny image
-    var r=await fetch('https://image.pollinations.ai/prompt/test?width=64&height=64&nologo=true',{method:'GET'});
+    var r=await fetch('https://image.pollinations.ai/prompt/test?width=64&height=64&model=flux&nologo=true',{method:'GET'});
     if(r.ok){
       el.style.color='var(--green)';el.textContent='✓ Image API connected and ready!';
     } else {
@@ -1463,10 +1463,11 @@ async function testHFConnection(){
 
 async function generateImage(prompt, seed){
   // Pollinations.ai — free, no API key, no CORS issues, works from any browser
+  // Using image.pollinations.ai/prompt/ endpoint with flux model (free tier)
   var uniqueSeed = seed !== undefined ? seed : Math.floor(Math.random()*2147483647);
   var encoded = encodeURIComponent(prompt);
   var url = 'https://image.pollinations.ai/prompt/'+encoded
-    +'?width=1280&height=720&seed='+uniqueSeed+'&nologo=true&enhance=false';
+    +'?width=1280&height=720&model=flux&seed='+uniqueSeed+'&nologo=true&enhance=false';
 
   var r;
   try {
@@ -1476,9 +1477,10 @@ async function generateImage(prompt, seed){
   }
 
   if(!r.ok){
-    if(r.status===429) throw new Error('Rate limit — too many images at once. Will retry.');
+    if(r.status===402) throw new Error('Image API quota exceeded (402) — Pollinations free tier limit hit. Wait a moment and retry.');
+    if(r.status===429) throw new Error('Rate limit (429) — too many requests. Will retry shortly.');
     if(r.status===503) throw new Error('model_loading');
-    throw new Error('Image API error '+r.status);
+    throw new Error('Image API error '+r.status+' — try regenerating this scene.');
   }
 
   var ct = r.headers.get('content-type')||'';
@@ -1665,7 +1667,9 @@ async function produceVideo(){
     clearErrorLog();
 
     async function attemptImage(idx){
-      var seed=Math.floor(Math.random()*2147483647);
+      // Use idx-based seed component to guarantee different images per scene
+      var baseSeed = Date.now();
+      var seed = (baseSeed + idx * 99991) % 2147483647;
       return await generateImageForScene(currentScenes[idx].text, currentScenes[idx].route, seed);
     }
 
@@ -1676,7 +1680,7 @@ async function produceVideo(){
         updateCardStatus(i,'generating');
 
         try{
-          if(i>0) await sleep(800);
+          if(i>0) await sleep(1500);
           var result=await attemptImage(i);
           currentScenes[i].imgBlob=result.blob;
           imageBlobs[i]=result.blob;
