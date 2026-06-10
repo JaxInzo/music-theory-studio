@@ -593,14 +593,16 @@ function setGenProgress(pct,label){
 // ============================================================
 // CLAUDE API
 // ============================================================
-async function callGemini(prompt,maxTokens){
+async function callGemini(prompt,maxTokens,fastModel){
   var key=document.getElementById('claudeKey').value.trim();
   if(!key)throw new Error('Please enter your Groq API key.');
+  // Use 8b-instant for routing/JSON tasks (5x higher daily limit), 70b for script generation
+  var model=fastModel?'llama-3.1-8b-instant':'llama-3.3-70b-versatile';
   var r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
     method:'POST',
     headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
     body:JSON.stringify({
-      model:'llama-3.3-70b-versatile',
+      model:model,
       messages:[{role:'user',content:prompt}],
       temperature:0.2,
       max_tokens:maxTokens||3000
@@ -1378,41 +1380,32 @@ var NE=(function(){
 // SMART IMAGE ROUTER — batch all scenes in ONE Groq call
 // ============================================================
 async function batchRouteScenes(scenes, videoTopic, styleStr) {
-  // Send ALL scenes to Groq at once — returns array of routing decisions
   var sceneList = scenes.map(function(s,i){ return (i+1)+'. '+s.text; }).join('\n');
 
+  // Compact prompt — uses llama-3.1-8b-instant (500k TPD vs 100k for 70b)
   var routePrompt =
-    'You are the image director for a music theory YouTube channel called MusicIsEasy.\n' +
-    'VIDEO TOPIC: "' + videoTopic + '"\n\n' +
-    'For each scene, decide the best image type. You have two options:\n\n' +
-    'OPTION A — NOTATION (use when scene is about a specific music theory concept that can be drawn on a staff):\n' +
-    '{"type":"notation","subtype":"scale|chord|note_values|staff_clef|interval|key_signature|time_signature|note_names|rhythm","key":"e.g. C major","label":"Title to show","clef":"treble","notes":["C4","D4","E4"]}\n\n' +
-    'OPTION B — ILLUSTRATION (use for anything visual, conceptual, historical, or about instruments):\n' +
-    '{"type":"flux","prompt":"[40 words max. Specific flat icon illustration. NO humans NO faces NO photorealism. Dark navy background #1a2a4a, gold accents. Simple clean shapes. Directly illustrates THIS scene.]"}\n\n' +
-    'RULES:\n' +
-    '- notation: scales use "scale", named chords use "chord", A B C D E F G letters → "note_names", time signatures → "time_signature", note durations → "note_values"\n' +
-    '- flux: physical objects (piano, guitar), history, emotions, abstract concepts\n' +
-    '- flux prompts: be SPECIFIC to what is said. "7 note names A through G floating on music staff, flat icon style" not "music concept"\n' +
-    '- Keep images consistent: same navy+gold style throughout\n' +
-    '- notes array: always use octave notation e.g. C4 D4 E4 (not just C D E)\n\n' +
-    'SCENES:\n' + sceneList + '\n\n' +
-    'Output ONLY a valid JSON array with one object per scene, in order. No explanation, no markdown:\n' +
-    '[{"type":"..."},{"type":"..."},...]';
+    'Music theory YouTube video: "'+videoTopic+'"\n' +
+    'For each scene output one JSON object. Two types:\n' +
+    'NOTATION (music theory diagrams): {"type":"notation","subtype":"scale|chord|note_values|staff_clef|interval|key_signature|time_signature|note_names|rhythm","key":"C major","label":"C Major Scale","clef":"treble","notes":["C4","D4","E4","F4","G4","A4","B4","C5"]}\n' +
+    'FLUX (everything else — instruments, history, concepts): {"type":"flux","prompt":"flat icon illustration, navy bg, gold accents, NO humans, <20 words describing exactly what is shown>"}\n' +
+    'Use notation for: named scales, chords, note names A-G on staff, note values, intervals, key/time signatures.\n' +
+    'Use flux for: piano/guitar/instruments, history, emotions, abstract ideas.\n' +
+    'notes array: use octave notation C4 D4 E4. flux prompt: be specific to the scene text.\n\n' +
+    'SCENES:\n'+sceneList+'\n\n' +
+    'Reply ONLY with a JSON array, one object per scene, no markdown:\n[{...},{...}]';
 
   try {
-    var raw = await callGemini(routePrompt, 3000);
+    var raw = await callGemini(routePrompt, 2000, true); // true = use fast 8b model
     raw = raw.replace(/```json|```/g,'').trim();
     var match = raw.match(/\[[\s\S]*\]/);
     if(match) raw = match[0];
     var routes = JSON.parse(raw);
     if(!Array.isArray(routes)) throw new Error('not array');
-    // Pad if needed
-    while(routes.length < scenes.length) routes.push({type:'flux',prompt:'Music theory educational flat icon illustration, dark navy background, gold accents, simple geometric shapes.'});
+    while(routes.length < scenes.length) routes.push({type:'flux',prompt:'Music theory concept flat icon illustration, navy background, gold accents, simple shapes.'});
     return routes;
   } catch(e) {
-    // Fallback: all flux with generic prompts
     return scenes.map(function(s){
-      return {type:'flux', prompt:'Music theory educational flat icon illustration about: '+s.text.slice(0,50)+'. Dark navy background, gold accents, NO humans, simple geometric shapes.'};
+      return {type:'flux', prompt:'Music theory flat icon: '+s.text.slice(0,40)+'. Navy bg, gold accents, no humans.'};
     });
   }
 }
@@ -1642,7 +1635,7 @@ async function produceVideo(){
 
     var scenePrompt='You have a generated script and a Whisper transcription of the recorded voiceover. Your job is to divide the transcription into natural scenes for a music theory YouTube video.\n\nGENERATED SCRIPT:\n'+currentScript.script+'\n\nWHISPER TRANSCRIPTION:\n'+transcription+'\n\nINSTRUCTIONS:\n- Divide the transcription into natural scenes at sentence boundaries\n- Each scene should be 1-2 complete sentences\n- Aim for scenes that are 4-10 seconds each when spoken\n- Cross-reference with the script to ensure accuracy and correct any transcription errors\n- Output ONLY a JSON array like this, no other text:\n[{"text":"scene text here"},{"text":"next scene text here"}]\n- Minimum 15 scenes, maximum 50 scenes depending on audio length\n- Do not include any markdown, code fences, or explanation — pure JSON array only';
 
-    var scenesRaw=await callGemini(scenePrompt,4000);
+    var scenesRaw=await callGemini(scenePrompt,4000,true);
     // Strip any markdown fences just in case
     scenesRaw=scenesRaw.replace(/```json|```/g,'').trim();
     var scenesData=JSON.parse(scenesRaw);
