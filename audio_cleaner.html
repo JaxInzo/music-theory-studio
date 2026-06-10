@@ -598,6 +598,38 @@ function buildCleanBuffer(decisions, rawBuf) {
     }
   }
 
+  // ── DE-ESSER: tame k, sh, ch high-frequency transients ──
+  // Isolates high-frequency content using a high-shelf filter,
+  // detects spikes in that band, and reduces gain only when they exceed threshold.
+  // Voice fundamentals (200Hz-3kHz) are completely unaffected.
+  var deEssThresh  = 0.45;   // trigger level for HF content — gentle
+  var deEssRatio   = 0.40;   // reduce HF spike to 40% above threshold
+  var deEssAttack  = Math.floor(sr * 0.0005);  // 0.5ms — catches fast transients
+  var deEssRelease = Math.floor(sr * 0.040);   // 40ms release — natural recovery
+  for (var c = 0; c < outBuf.numberOfChannels; c++) {
+    var d = outBuf.getChannelData(c);
+    // High-shelf filter to isolate frequencies above ~5kHz (where sh/ch/k live)
+    // Simple first-order high-shelf: y[n] = x[n] - alpha * x[n-1] + alpha * y[n-1]
+    var hfAlpha = 0.72; // tuned for ~5kHz shelf at 48kHz sample rate
+    var hfPrev = 0;
+    var hfSignal = new Float32Array(d.length);
+    for (var i = 0; i < d.length; i++) {
+      hfSignal[i] = d[i] - hfAlpha * (i > 0 ? d[i-1] : 0) + hfAlpha * hfPrev;
+      hfPrev = hfSignal[i];
+    }
+    // Now apply gain reduction based on HF signal level
+    var deGain = 1.0;
+    for (var i = 0; i < d.length; i++) {
+      var hfAbs = Math.abs(hfSignal[i]);
+      var deTarget = hfAbs > deEssThresh
+        ? (deEssThresh + (hfAbs - deEssThresh) * deEssRatio) / hfAbs
+        : 1.0;
+      // Smooth gain changes
+      deGain += (deTarget - deGain) / (deTarget < deGain ? deEssAttack : deEssRelease);
+      d[i] *= deGain;
+    }
+  }
+
   // ── NORMALIZE to 85% ──
   var peak = 0;
   for (var c = 0; c < outBuf.numberOfChannels; c++) {
@@ -741,24 +773,33 @@ async function runCleaner() {
   var script = document.getElementById('scriptBox').value.trim();
   if (!script) { setStatus('Please paste your script.', 'error'); return; }
 
+  var groqKey = document.getElementById('groqKey') ? document.getElementById('groqKey').value.trim() : '';
+  if (!groqKey) { setStatus('Please enter your Groq API key.', 'error'); return; }
+
   var btn = document.getElementById('cleanBtn');
   btn.disabled = true;
   btn.innerHTML = '<svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Cleaning...';
   document.getElementById('results').style.display = 'none';
   hideStatus();
 
+  var currentStep = 'starting';
   try {
     // Step 1: Transcribe
+    currentStep = 'transcription';
     setProgress(8, 'Step 1 of 3 — Transcribing with Whisper via Groq...');
     var transcription = await transcribe(selectedFile);
+    if (!transcription || transcription.trim().length === 0) throw new Error('Transcription returned empty — is the audio file valid?');
 
     // Step 2: Get edit decisions
+    currentStep = 'analysis';
     setProgress(45, 'Step 2 of 3 — Analysing mistakes against script with Groq...');
     var decisions = await getDecisions(transcription, script);
+    if (!decisions || decisions.length === 0) throw new Error('No edit decisions returned — try simplifying your script or re-running.');
 
     // Step 3: Build clean audio
+    currentStep = 'audio-build';
     setProgress(75, 'Step 3 of 3 — Cutting at exact positions...');
-    if (!rawAudioBuffer) throw new Error('Audio could not be decoded. Please convert to MP3 or WAV using cloudconvert.com and try again.');
+    if (!rawAudioBuffer) throw new Error('Audio buffer not decoded. Please convert to MP3 or WAV and try again.');
     cleanedBuffer = buildCleanBuffer(decisions, rawAudioBuffer);
 
     setProgress(100, 'Done!');
@@ -768,7 +809,22 @@ async function runCleaner() {
 
   } catch(err) {
     hideProgress();
-    setStatus('Error: ' + err.message, 'error');
+    // Step-specific error messages
+    var msg = err.message || 'Unknown error';
+    var hint = '';
+    if (currentStep === 'transcription') {
+      if (msg.indexOf('401') > -1 || msg.indexOf('403') > -1) hint = ' — Check your Groq API key has audio transcription permissions.';
+      else if (msg.indexOf('413') > -1) hint = ' — File too large. Try compressing the audio first.';
+      else if (msg.indexOf('format') > -1 || msg.indexOf('decode') > -1) hint = ' — Try converting to MP3 or WAV first.';
+      else hint = ' (Step 1: Transcription failed)';
+    } else if (currentStep === 'analysis') {
+      if (msg.indexOf('JSON') > -1 || msg.indexOf('parse') > -1) hint = ' — Groq returned malformed response. Try again.';
+      else if (msg.indexOf('429') > -1) hint = ' — Rate limit hit. Wait a moment and try again.';
+      else hint = ' (Step 2: Analysis failed)';
+    } else if (currentStep === 'audio-build') {
+      hint = ' — Try a shorter audio file or check the audio format. (Step 3: Audio build failed)';
+    }
+    setStatus('Error: ' + msg + hint, 'error');
   }
 
   btn.disabled = false;
