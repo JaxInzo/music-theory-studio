@@ -1382,20 +1382,20 @@ var NE=(function(){
 async function batchRouteScenes(scenes, videoTopic, styleStr) {
   var sceneList = scenes.map(function(s,i){ return (i+1)+'. '+s.text; }).join('\n');
 
-  // Compact prompt — uses llama-3.1-8b-instant (500k TPD vs 100k for 70b)
   var routePrompt =
-    'Music theory YouTube video: "'+videoTopic+'"\n' +
-    'For each scene output one JSON object. Two types:\n' +
-    'NOTATION (music theory diagrams): {"type":"notation","subtype":"scale|chord|note_values|staff_clef|interval|key_signature|time_signature|note_names|rhythm","key":"C major","label":"C Major Scale","clef":"treble","notes":["C4","D4","E4","F4","G4","A4","B4","C5"]}\n' +
-    'FLUX (everything else — instruments, history, concepts): {"type":"flux","prompt":"flat icon illustration, navy bg, gold accents, NO humans, <20 words describing exactly what is shown>"}\n' +
-    'Use notation for: named scales, chords, note names A-G on staff, note values, intervals, key/time signatures.\n' +
-    'Use flux for: piano/guitar/instruments, history, emotions, abstract ideas.\n' +
-    'notes array: use octave notation C4 D4 E4. flux prompt: be specific to the scene text.\n\n' +
+    'Music theory YouTube video: "'+videoTopic+'".\n' +
+    'Each scene is a sentence from the voiceover. For each scene, pick the best image.\n\n' +
+    'NOTATION (draw on a music staff): {"type":"notation","subtype":"scale|chord|note_values|staff_clef|interval|key_signature|time_signature|note_names|rhythm","key":"C major","label":"C Major Scale","clef":"treble","notes":["C4","D4","E4","F4","G4","A4","B4","C5"]}\n' +
+    'ILLUSTRATION (everything else): {"type":"flux","prompt":"flat icon, navy bg #1a2a4a, gold accents, NO humans, specific to scene"}\n\n' +
+    'Use NOTATION for: named scales, chords, note names A-G, note durations, intervals, key/time signatures.\n' +
+    'Use ILLUSTRATION for: instruments, history, emotions, abstract ideas, introductions, conclusions.\n' +
+    'Make flux prompts specific — "treble clef symbol glowing gold on navy background" not "music concept".\n' +
+    'notes array: octave notation only e.g. C4 D4 E4.\n\n' +
     'SCENES:\n'+sceneList+'\n\n' +
-    'Reply ONLY with a JSON array, one object per scene, no markdown:\n[{...},{...}]';
+    'Reply with a JSON array only, one object per scene:\n[{...},{...}]';
 
   try {
-    var raw = await callGemini(routePrompt, 2000, true); // true = use fast 8b model
+    var raw = await callGemini(routePrompt, 2000); // 70b for image quality decisions
     raw = raw.replace(/```json|```/g,'').trim();
     var match = raw.match(/\[[\s\S]*\]/);
     if(match) raw = match[0];
@@ -1631,11 +1631,13 @@ async function produceVideo(){
     var transcription=await transcribeAudio(currentAudioFile);
 
     // ---- STEP 2: CROSS-REFERENCE & DIVIDE INTO SCENES ----
-    setProgress(35,'Step 2 of 3 — Cross-referencing transcription with script and dividing into scenes...');
+    setProgress(35,'Step 2 of 3 — Dividing transcription into scenes...');
 
-    var scenePrompt='You have a generated script and a Whisper transcription of the recorded voiceover. Your job is to divide the transcription into natural scenes for a music theory YouTube video.\n\nGENERATED SCRIPT:\n'+currentScript.script+'\n\nWHISPER TRANSCRIPTION:\n'+transcription+'\n\nINSTRUCTIONS:\n- Divide the transcription into natural scenes at sentence boundaries\n- Each scene should be 1-2 complete sentences\n- Aim for scenes that are 4-10 seconds each when spoken\n- Cross-reference with the script to ensure accuracy and correct any transcription errors\n- Output ONLY a JSON array like this, no other text:\n[{"text":"scene text here"},{"text":"next scene text here"}]\n- Minimum 15 scenes, maximum 50 scenes depending on audio length\n- Do not include any markdown, code fences, or explanation — pure JSON array only';
+    // Pass topic summary instead of full script to save tokens (~700 tokens saved per run)
+    var topicSummary = videoTopic + (currentScript&&currentScript.tone?' ('+currentScript.tone+' tone)':'');
+    var scenePrompt='Divide this music theory video transcription into scenes for a YouTube video about "'+topicSummary+'".\n\nTRANSCRIPTION:\n'+transcription+'\n\nRULES:\n- Split at natural sentence boundaries\n- Each scene = 1-2 sentences (4-10 seconds spoken)\n- Minimum 15 scenes, maximum 50\n- Correct obvious transcription errors using context\n- Output ONLY a JSON array, no markdown:\n[{"text":"..."},{"text":"..."}]';
 
-    var scenesRaw=await callGemini(scenePrompt,4000,true);
+    var scenesRaw=await callGemini(scenePrompt,4000); // 70b for accuracy
     // Strip any markdown fences just in case
     scenesRaw=scenesRaw.replace(/```json|```/g,'').trim();
     var scenesData=JSON.parse(scenesRaw);
