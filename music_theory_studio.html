@@ -295,16 +295,15 @@ RESTS (fixed positions always)
       </div>
       <div class="grid2" style="margin-top:14px;">
         <div class="field">
-          <label for="gemImgKey">Google AI API key — image generation</label>
-          <div class="pw-wrap">
-            <input type="password" id="gemImgKey" placeholder="AIza..." oninput="saveKey('gemimg',this.value)">
-            <button class="pw-toggle" onclick="toggleKey('gemImgKey','eye3')" aria-label="Toggle"><svg id="eye3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          <label for="proxyUrl">Cloudflare Worker URL — image generation</label>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            <input type="text" id="proxyUrl" placeholder="https://your-worker.workers.dev" oninput="saveKey('proxy',this.value)" style="flex:1;background:var(--bg3);border:0.5px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text1);font-size:13px;">
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
             <button onclick="testHFConnection()" style="font-size:11px;padding:4px 12px;background:var(--bg3);border:0.5px solid var(--border);color:var(--text2);border-radius:6px;cursor:pointer;">🔌 Test Connection</button>
             <span id="hfTestResult" style="font-size:11px;color:var(--text3);"></span>
           </div>
-          <p style="font-size:11px;color:var(--text3);margin-top:4px;">Free at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--gold);text-decoration:none;">aistudio.google.com/apikey</a> — 500 images/day free</p>
+          <p style="font-size:11px;color:var(--text3);margin-top:4px;">Your Cloudflare Worker proxy URL — see setup guide in README</p>
         </div>
       </div>
     </div>
@@ -559,8 +558,7 @@ function showSave(){var el=document.getElementById('saveIndicator');el.style.dis
 function loadSaved(){
   var ck=localStorage.getItem('mts_key_claude');if(ck){document.getElementById('claudeKey').value=ck;document.getElementById('groqKey').value=ck;}
   var gk=localStorage.getItem('mts_key_groq');if(gk){document.getElementById('groqKey').value=gk;document.getElementById('claudeKey').value=gk;}
-  var hk=localStorage.getItem('mts_key_hf');if(hk&&document.getElementById('hfKey'))document.getElementById('hfKey').value=hk;
-  var gik=localStorage.getItem('mts_key_gemimg');if(gik&&document.getElementById('gemImgKey'))document.getElementById('gemImgKey').value=gik;
+  var pk=localStorage.getItem('mts_key_proxy');if(pk&&document.getElementById('proxyUrl'))document.getElementById('proxyUrl').value=pk;
   ['tone','audience','length','complexity'].forEach(function(f){var v=localStorage.getItem('mts_def_'+f);if(v&&document.getElementById(f))document.getElementById(f).value=v;});
   ['avoid','channelName','channelTagline','globalAvoid'].forEach(function(f){var v=localStorage.getItem('mts_'+f);if(v&&document.getElementById(f))document.getElementById(f).value=v;});
 }
@@ -1470,70 +1468,53 @@ async function generateImageForScene(sceneText, route, seed) {
 // ============================================================
 async function testHFConnection(){
   var el=document.getElementById('hfTestResult');
-  var key=document.getElementById('gemImgKey').value.trim();
-  if(!key){el.style.color='var(--red)';el.textContent='⚠ Enter your Google AI API key first';return;}
+  var url=document.getElementById('proxyUrl').value.trim();
+  if(!url){el.style.color='var(--red)';el.textContent='⚠ Enter your Cloudflare Worker URL first';return;}
   el.style.color='var(--text3)';el.textContent='Testing...';
   try{
-    var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?key='+key);
-    if(r.ok){el.style.color='var(--green)';el.textContent='✓ Connected and ready!';}
-    else if(r.status===400||r.status===403){el.style.color='var(--red)';el.textContent='✕ Invalid API key — get one at aistudio.google.com/apikey';}
-    else{el.style.color='var(--gold)';el.textContent='⚠ Status '+r.status+' — may still work.';}
+    var r=await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:'test',seed:1})
+    });
+    if(r.ok||r.status===503){
+      el.style.color='var(--green)';el.textContent='✓ Worker connected! '+(r.status===503?'(Model loading — will be ready when you run)':'Ready.');
+    } else if(r.status===405){
+      el.style.color='var(--red)';el.textContent='✕ Wrong URL — make sure you copied the full worker URL';
+    } else {
+      el.style.color='var(--gold)';el.textContent='⚠ Status '+r.status+' — check HF_TOKEN secret in Cloudflare dashboard';
+    }
   }catch(err){
-    el.style.color='var(--red)';el.textContent='✕ '+err.message;
+    el.style.color='var(--red)';el.textContent='✕ Cannot reach worker: '+err.message;
   }
 }
 
 async function generateImage(prompt, seed){
-  var key=document.getElementById('gemImgKey').value.trim();
-  if(!key) throw new Error('No Google AI API key — please enter it in Tab 1.');
+  var url=document.getElementById('proxyUrl').value.trim();
+  if(!url) throw new Error('No Cloudflare Worker URL — please enter it in Tab 1.');
+  var uniqueSeed=seed!==undefined?seed:Math.floor(Math.random()*2147483647);
 
   var r;
   try{
-    r=await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key='+key,
-      {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          contents:[{parts:[{text:prompt}]}],
-          generationConfig:{
-            responseModalities:['IMAGE','TEXT']
-          }
-        })
-      }
-    );
+    r=await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:prompt,seed:uniqueSeed})
+    });
   }catch(fetchErr){
-    throw new Error('Network error reaching Gemini: '+fetchErr.message);
+    throw new Error('Cannot reach worker: '+fetchErr.message+'. Check the URL in Tab 1.');
   }
 
   if(!r.ok){
     var txt='';try{txt=await r.text();}catch(e){}
-    try{var j=JSON.parse(txt);if(j.error&&j.error.message)throw new Error(j.error.message);}catch(pe){if(pe.message&&pe.message.length>10)throw pe;}
-    if(r.status===401||r.status===403) throw new Error('Invalid Google AI API key ('+r.status+')');
-    if(r.status===429) throw new Error('Rate limit — 500 images/day free. Resets midnight UTC.');
     if(r.status===503) throw new Error('model_loading');
-    throw new Error('Gemini image error '+r.status+': '+txt.slice(0,120));
+    if(r.status===401||r.status===403) throw new Error('Invalid HF token in worker — check HF_TOKEN secret in Cloudflare dashboard');
+    if(r.status===429) throw new Error('HF rate limit (429) — free tier limit hit, retry in a minute');
+    throw new Error('Worker error '+r.status+': '+txt.slice(0,120));
   }
 
-  var json=await r.json();
-  try{
-    var parts=json.candidates[0].content.parts;
-    for(var i=0;i<parts.length;i++){
-      if(parts[i].inlineData&&parts[i].inlineData.data){
-        var b64=parts[i].inlineData.data;
-        var mime=parts[i].inlineData.mimeType||'image/png';
-        var byteStr=atob(b64);
-        var arr=new Uint8Array(byteStr.length);
-        for(var j=0;j<byteStr.length;j++) arr[j]=byteStr.charCodeAt(j);
-        return new Blob([arr],{type:mime});
-      }
-    }
-    throw new Error('No image data in Gemini response');
-  }catch(e){
-    throw new Error('Failed to extract image: '+e.message);
-  }
+  return await r.blob();
 }
-
 
 // ============================================================
 // GENERATE SCRIPT
@@ -1659,10 +1640,10 @@ async function produceVideo(){
 
   var claudeKey=document.getElementById('claudeKey').value.trim();
   var groqKey=document.getElementById('groqKey').value.trim();
-  var gemImgKey=document.getElementById('gemImgKey').value.trim();
+  var proxyUrl=document.getElementById('proxyUrl').value.trim();
   if(!claudeKey){setStatus('produceStatus','Please enter your Groq API key in Tab 1.','error');return;}
   if(!groqKey){setStatus('produceStatus','Please enter your Groq API key in Tab 1.','error');return;}
-  if(!gemImgKey){setStatus('produceStatus','Please enter your Google AI API key in Tab 1.','error');return;}
+  if(!proxyUrl){setStatus('produceStatus','Please enter your Cloudflare Worker URL in Tab 1.','error');return;}
 
   var artKey=document.getElementById('artStyle').value;
   var colorKey=document.getElementById('colorScheme').value;
