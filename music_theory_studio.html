@@ -1403,9 +1403,11 @@ async function batchRouteScenes(scenes, videoTopic, styleStr) {
     '- Describe ONLY what is literally being said in the scene\n' +
     '- If scene says "the musical alphabet has 7 letters A B C D E F G" → show exactly those 7 letters, large and clear\n' +
     '- If scene mentions a piano → show a piano, not a generic music scene\n' +
-    '- Keep it simple: one clear subject, flat icon style, navy background #1a2a4a, gold accents\n' +
-    '- NO humans, NO faces, NO photorealism\n' +
-    '- Max 15 words in the prompt — simpler = more accurate\n\n' +
+    '- Style prefix: start every prompt with "flat vector icon illustration," then describe the subject\n' +
+    '- End every prompt with "dark navy blue background, gold and white colors"\n' +
+    '- NO humans, NO faces, NO photorealism, NO abstract art\n' +
+    '- Max 20 words total — simpler = more accurate\n' +
+    '- Example: "flat vector icon illustration, seven letter icons A B C D E F G in a row, dark navy blue background, gold and white colors"\n\n' +
     'notes array: octave notation e.g. C4 D4 E4.\n\n' +
     'SCENES (format: N. [prior context] "current scene"):\n'+sceneList+'\n\n' +
     'Reply with a JSON array only, one object per scene, no markdown:\n[{...},{...}]';
@@ -1468,23 +1470,31 @@ async function testHFConnection(){
 
 
 async function generateImage(prompt, seed){
-  // Puter.js — free, unlimited, no API key, no CORS issues
-  // Uses user-pays model so no limits on our end
+  // Stable Diffusion 3 via Puter.js — supports negative_prompt for style control
+  var uniqueSeed = seed !== undefined ? seed : Math.floor(Math.random()*2147483647);
+
+  var negativePrompt = 'photorealistic, photograph, human, person, face, hands, body, realistic skin, 3D render, cinematic, dark, gritty, horror, abstract swirls, blurry, low quality, watermark, text, signature, busy background, complex scene';
+
   return new Promise(function(resolve, reject){
-    puter.ai.txt2img(prompt, { model: 'flux-schnell' })
-      .then(function(imgElement){
-        // imgElement is an <img> DOM element — convert src to blob
-        var src = imgElement.src;
-        fetch(src)
-          .then(function(r){ return r.blob(); })
-          .then(function(blob){ resolve(blob); })
-          .catch(function(){ resolve(srcToBlob(src)); });
-      })
-      .catch(function(err){
-        var msg = err && err.message ? err.message : String(err);
-        if(msg.indexOf('402')>-1) reject(new Error('Puter quota exceeded — try again shortly.'));
-        else reject(new Error('Image generation failed: '+msg));
-      });
+    puter.ai.txt2img(prompt, {
+      model: 'stabilityai/stable-diffusion-3-medium',
+      width: 1280,
+      height: 720,
+      steps: 28,
+      seed: uniqueSeed,
+      negative_prompt: negativePrompt
+    })
+    .then(function(imgElement){
+      var src = imgElement.src;
+      fetch(src)
+        .then(function(r){ return r.blob(); })
+        .then(function(blob){ resolve(blob); })
+        .catch(function(){ resolve(srcToBlob(src)); });
+    })
+    .catch(function(err){
+      var msg = err && err.message ? err.message : String(err);
+      reject(new Error('Image generation failed: '+msg));
+    });
   });
 }
 
