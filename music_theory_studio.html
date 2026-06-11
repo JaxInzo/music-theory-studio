@@ -1007,16 +1007,29 @@ async function batchRoute(scenes, topic){
 // IMAGE GENERATION — pure notation engine, no external API
 // ============================================================
 async function generateImageForScene(sceneText, route){
-  var artKey=document.getElementById('artStyle').value||'navy';
+  var artKey=(document.getElementById('artStyle')||{value:'navy'}).value||'navy';
   var colorMap={navy:'#e8c96a',chalkboard:'#e8d080',cream:'#8b6914'};
   var bgMap={navy:'#1a2a4a',chalkboard:'#0d1826',cream:'#f5f0e8'};
   var style={color:colorMap[artKey]||'#e8c96a',bg:bgMap[artKey]||'#1a2a4a'};
 
-  var svgStr=NE.generateFromRoute(route,style);
+  // Ensure we always have a valid route
+  var safeRoute=route||{type:'concept',label:'Music Theory'};
+
+  // Try notation first, fall back to concept
+  var svgStr=NE.generateFromRoute(safeRoute,style);
+  if(!svgStr){
+    // generateFromRoute returned null — use concept card instead
+    var words=(sceneText||'').replace(/[^a-zA-Z\s]/g,'').split(/\s+/).filter(function(w){return w.length>3;});
+    var label=words[0]||'Music Theory';
+    label=label.charAt(0).toUpperCase()+label.slice(1).toLowerCase();
+    svgStr=NE.generateConcept({type:'concept',label:label,subtitle:sceneText},style);
+  }
+
   try{
     var blob=await NE.toPNGBlob(svgStr);
-    return{blob:blob,source:route&&route.type==='notation'?'notation':'concept'};
+    return{blob:blob,source:safeRoute.type==='notation'?'notation':'concept'};
   }catch(e){
+    // PNG conversion failed — return SVG blob directly
     return{blob:NE.toBlob(svgStr),source:'svg'};
   }
 }
