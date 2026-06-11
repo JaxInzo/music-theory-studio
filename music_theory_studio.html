@@ -515,7 +515,7 @@ var NE=(function(){
           'G5':[ly(5)-SLS],'A5':[ly(5)-SLS,ly(5)-SLS*2],'B5':[ly(5)-SLS,ly(5)-SLS*2,ly(5)-SLS*3],'C6':[ly(5)-SLS,ly(5)-SLS*2]};
   var BL={'C4':[bly(5)-SLS],'D4':[bly(5)-SLS],'E4':[bly(5)-SLS,bly(5)-SLS*2],'F4':[bly(5)-SLS,bly(5)-SLS*2],'G4':[bly(5)-SLS,bly(5)-SLS*2,bly(5)-SLS*3]};
 
-  function noteY(n,clef){var p=clef='bass'?BP:TP;var b=n.replace('#','').replace('b','');return p[b]!==undefined?p[b]:null;}
+  function noteY(n,clef){var p=clef==='bass'?BP:TP;var b=n.replace('#','').replace('b','');return p[b]!==undefined?p[b]:null;}
   function noteLedgers(n,clef){var l=clef==='bass'?BL:TL;var b=n.replace('#','').replace('b','');return l[b]||[];}
 
   // ── FULL SCALES DICTIONARY ──
@@ -691,9 +691,6 @@ var NE=(function(){
   }
 
   // ── VISUAL HELPERS FOR generateFromRoute ──
-  function bgWord(W,H,c,word,sz,op){
-    return '<text x="'+( W/2)+'" y="'+( H/2+sz*0.35)+'" text-anchor="middle" font-family="Georgia,serif" font-size="'+sz+'" fill="'+c+'" opacity="'+( op||0.04)+'" font-weight="bold">'+word+'</text>';
-  }
   function accentBars(W,H,c,op){
     return '<rect x="0" y="0" width="8" height="'+H+'" fill="'+c+'" opacity="'+( op||0.1)+'"/>'+
            '<rect x="'+( W-8)+'" y="0" width="8" height="'+H+'" fill="'+c+'" opacity="'+( op||0.1)+'"/>';
@@ -751,7 +748,7 @@ var NE=(function(){
       var sn=route.key||'C major';
       var ns=route.notes||(SCALES[sn]||SCALES['C major']);
       var title=route.label||(sn.charAt(0).toUpperCase()+sn.slice(1)+' Scale');
-      xlyr+=bgWord(W,H,c,sn.split(' ')[0].toUpperCase(),260,0.035)+accentBars(W,H,c,0.1);
+xlyr+=accentBars(W,H,c,0.1)
       var sp=Math.floor((SW-SLS*5-30)/ns.length);
       var sx=SL+SLS*5;
       lyr+=clef==='bass'?bclef(0,c):tclef(0,c);
@@ -791,7 +788,7 @@ var NE=(function(){
 
     if(sub==='note_values'){
       var title=route.label||'Note Values';
-      xlyr+=bgWord(W,H,c,'♩',400,0.025)+accentBars(W,H,c,0.08);
+accentBars(W,H,c,0.08);
       var types=['whole','half','quarter','eighth','sixteenth'];
       var lbls=['Whole','Half','Quarter','Eighth','16th'];
       var beats=['4 beats','2 beats','1 beat','½ beat','¼ beat'];
@@ -850,7 +847,7 @@ var NE=(function(){
     if(sub==='key_signature'){
       var ks=route.key||'C major';
       var title=route.label||(ks+' Key Signature');
-      xlyr+=bgWord(W,H,c,ks.split(' ')[0].toUpperCase(),280,0.04)+accentBars(W,H,c,0.09);
+xlyr+=accentBars(W,H,c,0.09)
       lyr+=clef==='bass'?bclef(0,c):tclef(0,c);
       var staffY=clef==='bass'?BST:ST;
       var ksSharps={'G major':1,'D major':2,'A major':3,'E major':4,'B major':5,'F# major':6,'C# major':7,'E minor':1,'B minor':2,'F# minor':3,'C# minor':4,'G# minor':5,'D# minor':6,'A# minor':7};
@@ -864,11 +861,11 @@ var NE=(function(){
       if(ksSharps[ks]){
         var n=ksSharps[ks];
         for(var i=0;i<n;i++)nlyr+='<text x="'+( accX+i*SLS*1.4)+'" y="'+( shpY[i]+9)+'" font-family="serif" font-size="28" fill="'+c+'" text-anchor="middle">♯</text>';
-        nlyr+='<text x="'+( W/2)+'" y="'+( ly(1)+SLS*3.5)+'" text-anchor="middle" font-family="Georgia,serif" font-size="20" fill="'+c+'" opacity="0.6">'+n+' sharp'+( n>1?'s':'')+ ': '+sharpNames.slice(0,n).map(function(s){return s.replace('#','♯');}).join('  ')+'</text>';
+        nlyr+='<text x="'+( W/2)+'" y="'+( ly(1)+SLS*3.5)+'" text-anchor="middle" font-family="Georgia,serif" font-size="20" fill="'+c+'" opacity="0.6">'+n+' sharp'+( n>1?'s':'')+ ': '+sharpNames.slice(0,n).map(function(sn){return sn.replace('#','♯');}).join('  ')+'</text>';
       } else if(ksFlats[ks]){
         var n=ksFlats[ks];
         for(var i=0;i<n;i++)nlyr+='<text x="'+( accX+i*SLS*1.4)+'" y="'+( fltY[i]+4)+'" font-family="serif" font-size="28" fill="'+c+'" text-anchor="middle">♭</text>';
-        nlyr+='<text x="'+( W/2)+'" y="'+( ly(1)+SLS*3.5)+'" text-anchor="middle" font-family="Georgia,serif" font-size="20" fill="'+c+'" opacity="0.6">'+n+' flat'+( n>1?'s':'')+ ': '+flatNames.slice(0,n).map(function(f){return f.replace('b','♭');}).join('  ')+'</text>';
+        nlyr+='<text x="'+( W/2)+'" y="'+( ly(1)+SLS*3.5)+'" text-anchor="middle" font-family="Georgia,serif" font-size="20" fill="'+c+'" opacity="0.6">'+n+' flat'+( n>1?'s':'')+ ': '+flatNames.slice(0,n).map(function(fn){return fn.replace('b','♭');}).join('  ')+'</text>';
       } else {
         nlyr+='<text x="'+( W/2)+'" y="'+ly(3)+'" text-anchor="middle" font-family="Georgia,serif" font-size="28" fill="'+c+'" opacity="0.7">No sharps or flats</text>';
       }
@@ -909,7 +906,7 @@ var NE=(function(){
     if(sub==='rhythm'){
       var rt=route.notes||['quarter','quarter','eighth','eighth','quarter'];
       var title=route.label||'Rhythm Pattern';
-      xlyr+=bgWord(W,H,c,'♩',380,0.025)+accentEdges(W,H,c,0.1);
+accentEdges(W,H,c,0.1);
       lyr+=tclef(0,c);
       nlyr+='<text x="'+( SL+SLS*4)+'" y="'+( ly(4)+8)+'" text-anchor="middle" font-family="Georgia,serif" font-size="'+( SLS*2.2)+'" fill="'+c+'">4</text>';
       nlyr+='<text x="'+( SL+SLS*4)+'" y="'+( ly(2)+8)+'" text-anchor="middle" font-family="Georgia,serif" font-size="'+( SLS*2.2)+'" fill="'+c+'">4</text>';
@@ -935,8 +932,7 @@ var NE=(function(){
     var hdr='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+
       '<rect width="'+W+'" height="'+H+'" fill="'+bg+'"/>'+corners(W,H,c)+
       '<text x="'+( W-48)+'" y="'+( H-22)+'" text-anchor="end" font-family="sans-serif" font-size="13" fill="'+c+'" opacity="0.22" font-style="italic">MusicIsEasy</text>';
-    var body=bgWord(W,H,c,word.toUpperCase().slice(0,10),190,0.055)+
-      accentBars(W,H,c,0.12)+accentEdges(W,H,c,0.08)+
+    var body=accentBars(W,H,c,0.12)+accentEdges(W,H,c,0.08)+
       '<text x="'+( W/2)+'" y="'+( H/2-15)+'" text-anchor="middle" font-family="Georgia,serif" font-size="72" fill="'+c+'" opacity="0.88" font-weight="bold">'+escHtml(word)+'</text>'+
       (sub?'<text x="'+( W/2)+'" y="'+( H/2+50)+'" text-anchor="middle" font-family="Georgia,serif" font-size="26" fill="'+c+'" opacity="0.48">'+escHtml(sub.slice(0,70))+'</text>':'') +
       '<line x1="'+( W/2-180)+'" y1="'+( H/2+78)+'" x2="'+( W/2+180)+'" y2="'+( H/2+78)+'" stroke="'+c+'" stroke-width="1" opacity="0.18"/>';
@@ -1262,8 +1258,9 @@ function clearErrors(){errorLog=[];var l=document.getElementById('errList');if(l
 async function regenImg(i){
   var btn=document.getElementById('regBtn_'+i);if(btn){btn.disabled=true;btn.textContent='...';}
   var card=document.getElementById('card_'+i);if(card)card.classList.remove('failed','done');
-  var img=document.getElementById('img_'+i);if(img)img.style.display='none';
-  setCardStatus(i,'generating');
+  var img=document.getElementById('img_'+i);if(img){img.style.display='none';img.src='';}
+  var ph=document.getElementById('ph_'+i);
+  if(ph){ph.style.display='flex';ph.innerHTML='<svg class="pulse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span style="font-size:10px;color:var(--text3);">Regenerating...</span>';}
   try{
     var result=await generateImageForScene(currentScenes[i].text,currentScenes[i].route);
     currentScenes[i].imgBlob=result.blob;imageBlobs[i]=result.blob;
